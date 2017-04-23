@@ -44,6 +44,31 @@ var GameObjects;
     }());
     GameObjects.Player = Player;
 })(GameObjects || (GameObjects = {}));
+var GameObjects;
+(function (GameObjects) {
+    var Bullet = (function () {
+        function Bullet(x, y, angle, speed) {
+            this.angle = angle;
+            this.speed = speed;
+            this.sprite = Game.game.add.sprite(x, y, "bullet");
+            Game.game.physics.arcade.enable(this.sprite);
+            this.sprite.anchor.setTo(0.5, 0.5);
+            Game.game.time.events.add(Phaser.Timer.SECOND * 3, this.sprite.destroy, this.sprite);
+        }
+        Bullet.prototype.update = function () {
+            this.sprite.angle = this.angle;
+            this.sprite.x += Math.cos((Math.PI / 180) * this.angle) * this.speed;
+            this.sprite.y += Math.sin((Math.PI / 180) * this.angle) * this.speed;
+        };
+        Bullet.prototype.towards = function (x, y) {
+            var deltaX = x - this.sprite.x;
+            var deltaY = y - this.sprite.y;
+            this.angle = (180 / Math.PI) * Math.atan2(deltaY, deltaX);
+        };
+        return Bullet;
+    }());
+    GameObjects.Bullet = Bullet;
+})(GameObjects || (GameObjects = {}));
 var GameRooms;
 (function (GameRooms) {
     var Boot = (function (_super) {
@@ -71,6 +96,7 @@ var Global;
     Global.ui = null;
     Global.pathfinder = null;
     Global.graphics = null;
+    Global.bullet = null;
 })(Global || (Global = {}));
 /// <reference path="../Global.ts" />
 var GameRooms;
@@ -165,11 +191,18 @@ var GameRooms;
             this.player.update();
             this.enemy.update();
             var player = this.player;
+            var blockedLayer = this.blockedLayer;
             this.enemy.bullets.forEach(function (bullet) {
+                Global.bullet = bullet;
                 bullet.update();
-                Game.game.physics.arcade.overlap(bullet, this.blockedLayer, null, function () {
-                    this.sprite.destroy();
-                }, this.bullet);
+                Game.game.physics.arcade.collide(bullet.sprite, player.sprite, null, function () {
+                    Global.bullet.sprite.destroy();
+                }, this);
+                if (bullet != null) {
+                    Game.game.physics.arcade.collide(bullet.sprite, blockedLayer, null, function () {
+                        //Global.bullet.sprite.destroy();
+                    }, this);
+                }
             });
             var playerCoords = new Phaser.Point(this.player.sprite.x, this.player.sprite.y);
             if (this.enemy.canSeePlayer(playerCoords, this.blockedLayer)) {
@@ -190,30 +223,6 @@ var GameRooms;
     }(Phaser.State));
     GameRooms.MainRoom = MainRoom;
 })(GameRooms || (GameRooms = {}));
-var GameObjects;
-(function (GameObjects) {
-    var Bullet = (function () {
-        function Bullet(x, y, angle, speed) {
-            this.angle = angle;
-            this.speed = speed;
-            this.sprite = Game.game.add.sprite(x, y, "bullet");
-            this.sprite.anchor.setTo(0.5, 0.5);
-            Game.game.time.events.add(Phaser.Timer.SECOND * 3, this.sprite.destroy, this.sprite);
-        }
-        Bullet.prototype.update = function () {
-            this.sprite.angle = this.angle;
-            this.sprite.x += Math.cos((Math.PI / 180) * this.angle) * this.speed;
-            this.sprite.y += Math.sin((Math.PI / 180) * this.angle) * this.speed;
-        };
-        Bullet.prototype.towards = function (x, y) {
-            var deltaX = x - this.sprite.x;
-            var deltaY = y - this.sprite.y;
-            this.angle = (180 / Math.PI) * Math.atan2(deltaY, deltaX);
-        };
-        return Bullet;
-    }());
-    GameObjects.Bullet = Bullet;
-})(GameObjects || (GameObjects = {}));
 /// <reference path="3rdParty/phaser.d.ts" />
 /// <reference path="GameRooms/Boot.ts" />
 /// <reference path="GameRooms/Loader.ts" />
@@ -300,12 +309,17 @@ var GameObjects;
             this.speed = 300;
             this.bullets = new Array();
             this.bulletSpeed = 30;
-            Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
+            this.numOfBullets = this.maxBullets = 1;
+            Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.followPlayer, this);
+            Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.giveBullet, this);
         }
         Enemy.prototype.update = function () {
             this.followPath();
             if (this.shootPlayer == true) {
-                this.shootBullet();
+                if (this.numOfBullets > 0) {
+                    this.shootBullet();
+                    this.numOfBullets--;
+                }
             }
         };
         Enemy.prototype.reached_target_position = function (target_position) {
@@ -376,6 +390,10 @@ var GameObjects;
                 this.Stop();
                 this.MoveTo(this.latestPlayerCoords);
             }
+        };
+        Enemy.prototype.giveBullet = function () {
+            if (this.numOfBullets != this.maxBullets)
+                this.numOfBullets++;
         };
         return Enemy;
     }());

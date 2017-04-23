@@ -45,14 +45,19 @@ module GameRooms {
 			this.enemy.update();
 
 			var player = this.player;
+			var blockedLayer = this.blockedLayer;
 			this.enemy.bullets.forEach(function(bullet) {
+				Global.bullet = bullet;
 				bullet.update();
-				Game.game.physics.arcade.overlap(bullet, this.blockedLayer, null, function() {
-					this.sprite.destroy();
-				}, this.bullet);
-
+				Game.game.physics.arcade.collide(bullet.sprite, player.sprite, null, function() {
+					Global.bullet.sprite.destroy();
+				}, this);
+				if(bullet != null) {
+					Game.game.physics.arcade.collide(bullet.sprite, blockedLayer, null, function() {
+						//Global.bullet.sprite.destroy();
+					}, this);
+				}
 			});
-
 
 			var playerCoords = new Phaser.Point(this.player.sprite.x, this.player.sprite.y);
 			if(this.enemy.canSeePlayer(playerCoords, this.blockedLayer)) {

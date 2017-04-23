@@ -10,6 +10,8 @@ module GameObjects {
 			this.speed = speed;
 
 			this.sprite = Game.game.add.sprite(x, y, "bullet");
+			Game.game.physics.arcade.enable(this.sprite);
+			
 			this.sprite.anchor.setTo(0.5, 0.5);
 
 			Game.game.time.events.add(Phaser.Timer.SECOND * 3, this.sprite.destroy, this.sprite);

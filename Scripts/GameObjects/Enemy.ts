@@ -14,6 +14,8 @@ module GameObjects {
 
 		bullets: Array<GameObjects.Bullet>;
 		bulletSpeed: number;
+		numOfBullets: number;
+		maxBullets: number;
 
 		latestPlayerCoords: Phaser.Point;
 		oldPlayerCoords: Phaser.Point;
@@ -31,15 +33,20 @@ module GameObjects {
 
 			this.bullets = new Array<GameObjects.Bullet>();
 			this.bulletSpeed = 30;
+			this.numOfBullets = this.maxBullets = 1;
 
-			Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
+			Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.followPlayer, this);
+			Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.giveBullet, this);
 		}
 
 		update() {
 			this.followPath();
 
 			if(this.shootPlayer == true) {
-				this.shootBullet();
+				if(this.numOfBullets > 0) {
+					this.shootBullet();
+					this.numOfBullets--;
+				}
 			}
 		}
 
@@ -121,6 +128,11 @@ module GameObjects {
 				this.Stop();
 				this.MoveTo(this.latestPlayerCoords);
 			}
+		}
+
+		giveBullet() {
+			if(this.numOfBullets != this.maxBullets)
+				this.numOfBullets++;
 		}
 
 	}
