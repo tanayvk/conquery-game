@@ -12,7 +12,6 @@ module GameRooms {
 			loaderBar.anchor.setTo(0.5, 0.5);
 
 			this.game.load.setPreloadSprite(loaderBar);
-
 		}
 
 		preload() {
@@ -24,6 +23,8 @@ module GameRooms {
 			this.game.load.image("enemy", "Assets/Images/enemy.png");
 			this.game.load.image("wall", "Assets/Images/wall.png");
 			this.game.load.image("bullet", "Assets/Images/bullet.png");
+			this.game.load.image("planet", "Assets/Images/planet.png");
+			this.game.load.image("planet_activated", "Assets/Images/planet_activated.png");
 		}
 
 		create() {

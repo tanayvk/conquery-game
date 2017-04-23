@@ -95,8 +95,10 @@ var Global;
 (function (Global) {
     Global.ui = null;
     Global.pathfinder = null;
-    Global.graphics = null;
     Global.bullet = null;
+    Global.blockedLayer = null;
+    Global.player = null;
+    Global.enemies = null;
 })(Global || (Global = {}));
 /// <reference path="../Global.ts" />
 var GameRooms;
@@ -118,6 +120,8 @@ var GameRooms;
             this.game.load.image("enemy", "Assets/Images/enemy.png");
             this.game.load.image("wall", "Assets/Images/wall.png");
             this.game.load.image("bullet", "Assets/Images/bullet.png");
+            this.game.load.image("planet", "Assets/Images/planet.png");
+            this.game.load.image("planet_activated", "Assets/Images/planet_activated.png");
         };
         Loader.prototype.create = function () {
             this.game.state.start("main-menu");
@@ -126,6 +130,92 @@ var GameRooms;
     }(Phaser.State));
     GameRooms.Loader = Loader;
 })(GameRooms || (GameRooms = {}));
+var GameObjects;
+(function (GameObjects) {
+    var Planet = (function () {
+        function Planet(x, y) {
+            this.isActivated = false;
+            this.sprite = Game.game.add.sprite(x, y, 'planet');
+            this.sprite.anchor.setTo(0.5, 0.5);
+            Game.game.physics.arcade.enable(this.sprite);
+            this.actionKey = Game.game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
+            this.loadTime = 3;
+            this.loadTimer = Game.game.time.create(false);
+            this.loadTimer.add(this.loadTime * Phaser.Timer.SECOND, this.activatePlanet, this);
+            this.loadTimer.start();
+            this.loadTimer.pause();
+            this.progressBar = new GameObjects.ProgressBar(Game.game.width / 2 - 100, Game.game.height - 100, 200, 30, 50);
+            this.bullets = new Array();
+            this.bulletSpeed = 30;
+            this.maxBullets = this.numOfBullets = 3;
+            Game.game.time.events.loop(Phaser.Timer.SECOND / 3, this.giveBullet, this);
+        }
+        Planet.prototype.update = function () {
+            if (!this.isActivated && this.actionKey.isDown && Game.game.physics.arcade.collide(this.sprite, Global.player.sprite)) {
+                this.loadTimer.resume();
+            }
+            else {
+                this.loadTimer.pause();
+            }
+            var planet = this;
+            if (this.isActivated) {
+                Global.enemies.forEach(function (enemy) {
+                    if (planet.canSeeEnemy(enemy) && planet.numOfBullets > 0) {
+                        planet.Shoot(enemy);
+                        planet.numOfBullets--;
+                    }
+                });
+            }
+            this.bullets.forEach(function (bullet) {
+                bullet.update();
+                Global.bullet = bullet;
+                Game.game.physics.arcade.collide(Global.bullet.sprite, planet.getEnemiesArray(), null, function () {
+                    Global.bullet.sprite.destroy();
+                    Global.bullet = null;
+                }, this);
+            });
+        };
+        Planet.prototype.render = function () {
+            if (Game.game.physics.arcade.collide(this.sprite, Global.player.sprite) && !this.isActivated) {
+                this.progressBar.percent = (this.loadTimer.seconds / this.loadTime) * 100;
+                this.progressBar.draw();
+            }
+        };
+        Planet.prototype.activatePlanet = function () {
+            this.isActivated = true;
+            this.loadTimer.destroy();
+            this.sprite.loadTexture('planet_activated');
+        };
+        Planet.prototype.canSeeEnemy = function (enemy) {
+            var myCoords = new Phaser.Point(this.sprite.x, this.sprite.y);
+            var enemyCoords = new Phaser.Point(enemy.sprite.x, enemy.sprite.y);
+            var photon = new GameObjects.Photon(myCoords, enemyCoords, Global.blockedLayer);
+            return photon.isFree();
+        };
+        Planet.prototype.Shoot = function (enemy) {
+            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, 0, this.bulletSpeed);
+            bullet.towards(enemy.sprite.x, enemy.sprite.y);
+            this.bullets.push(bullet);
+        };
+        Planet.prototype.getEnemiesArray = function () {
+            if (this.enemiesArray == undefined) {
+                this.enemiesArray = new Array();
+                var planet = this;
+                Global.enemies.forEach(function (enemy) {
+                    planet.enemiesArray.push(enemy.sprite);
+                });
+            }
+            return this.enemiesArray;
+        };
+        Planet.prototype.giveBullet = function () {
+            if (this.numOfBullets != this.maxBullets)
+                this.numOfBullets++;
+        };
+        return Planet;
+    }());
+    GameObjects.Planet = Planet;
+})(GameObjects || (GameObjects = {}));
+/// <reference path="../GameObjects/Planet.ts" />
 var GameRooms;
 (function (GameRooms) {
     var MainMenu = (function (_super) {
@@ -161,6 +251,34 @@ var GameRooms;
     }(Phaser.State));
     GameRooms.MainMenu = MainMenu;
 })(GameRooms || (GameRooms = {}));
+var GameObjects;
+(function (GameObjects) {
+    var ProgressBar = (function () {
+        function ProgressBar(x, y, width, height, percent) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.percent = percent;
+            this.backgroundColor = "#ffffff";
+            this.foregroundColor = "#ffff00";
+        }
+        ProgressBar.prototype.getWidth = function () {
+            return ((this.percent / 100) * this.width);
+        };
+        ProgressBar.prototype.draw = function () {
+            var cameraX = Game.game.camera.x;
+            var cameraY = Game.game.camera.y;
+            this.backRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.width, this.height);
+            this.frontRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.getWidth(), this.height);
+            Game.game.debug.geom(this.backRect, this.backgroundColor);
+            Game.game.debug.geom(this.frontRect, this.foregroundColor);
+        };
+        return ProgressBar;
+    }());
+    GameObjects.ProgressBar = ProgressBar;
+})(GameObjects || (GameObjects = {}));
+/// <reference path="../GameObjects/ProgressBar.ts" />
 var GameRooms;
 (function (GameRooms) {
     var MainRoom = (function (_super) {
@@ -174,50 +292,58 @@ var GameRooms;
             Game.game.map.addTilesetImage('enemy', 'wall');
             this.backgroundLayer = Game.game.map.createLayer('backgroundLayer');
             this.backgroundLayer.resizeWorld();
-            this.blockedLayer = Game.game.map.createLayer('collisions');
+            Global.blockedLayer = this.blockedLayer = Game.game.map.createLayer('collisions');
             Game.game.physics.arcade.enable(this.blockedLayer);
             Game.game.map.setCollisionBetween(1, 10000, true, this.blockedLayer);
             var tile_dimensions = new Phaser.Point(Game.game.map.tileWidth, Game.game.map.tileHeight);
             this.pathfinder = Game.game.plugins.add(Pathfinding, Game.game.map.layers[1].data, [-1], tile_dimensions);
-            this.player = new GameObjects.Player(1000, 1000);
-            // Game.game.camera.follow(this.player.sprite);
-            this.enemy = new GameObjects.Enemy(160, 192);
-            this.enemy.setPathFinder(this.pathfinder);
-            // Game.game.time.events.loop(Phaser.Timer.SECOND, this.FollowPlayer, this);\
-            Game.game.camera.follow(this.player.sprite);
+            this.createPlanets();
+            Global.enemies = this.enemies = new Array();
+            this.createEnemies();
+            this.createPlayer();
         };
         MainRoom.prototype.update = function () {
             Game.game.physics.arcade.collide(this.player.sprite, this.blockedLayer);
             this.player.update();
-            this.enemy.update();
+            this.updateEnemies();
+            this.planet.update();
             var player = this.player;
             var blockedLayer = this.blockedLayer;
-            this.enemy.bullets.forEach(function (bullet) {
-                Global.bullet = bullet;
-                bullet.update();
-                Game.game.physics.arcade.collide(bullet.sprite, player.sprite, null, function () {
-                    Global.bullet.sprite.destroy();
-                }, this);
-                if (bullet != null) {
-                    Game.game.physics.arcade.collide(bullet.sprite, blockedLayer, null, function () {
-                        //Global.bullet.sprite.destroy();
-                    }, this);
-                }
-            });
-            var playerCoords = new Phaser.Point(this.player.sprite.x, this.player.sprite.y);
-            if (this.enemy.canSeePlayer(playerCoords, this.blockedLayer)) {
-                this.enemy.latestPlayerCoords = playerCoords;
-                this.enemy.shootPlayer = true;
-            }
-            else {
-                this.enemy.shootPlayer = false;
-            }
         };
-        // FollowPlayer() {
-        // 	this.enemy.move_to(this.pathfinder, new Phaser.Point(this.player.sprite.x, this.player.sprite.y));
-        // }
+        MainRoom.prototype.createPlanets = function () {
+            this.planet = new GameObjects.Planet(750, 700);
+        };
+        MainRoom.prototype.createEnemies = function () {
+            var enemy = new GameObjects.Enemy(160, 192, this.pathfinder);
+            this.enemies.push(enemy);
+            enemy = new GameObjects.Enemy(700, 600, this.pathfinder);
+            this.enemies.push(enemy);
+        };
+        MainRoom.prototype.createPlayer = function () {
+            this.player = new GameObjects.Player(1000, 1000);
+            Global.player = this.player;
+            Game.game.camera.follow(this.player.sprite);
+        };
         MainRoom.prototype.render = function () {
-            //Game.game.debug.cameraInfo(Game.game.camera, 32, 32);
+            this.planet.render();
+            Game.game.debug.text(this.planet.loadTimer.seconds);
+        };
+        MainRoom.prototype.updateEnemies = function () {
+            this.enemies.forEach(function (enemy) {
+                enemy.update();
+                enemy.bullets.forEach(function (bullet) {
+                    Global.bullet = bullet;
+                    bullet.update();
+                    Game.game.physics.arcade.collide(Global.bullet.sprite, Global.player.sprite, null, function () {
+                        Global.bullet.sprite.destroy();
+                        Global.bullet = null;
+                    }, this);
+                    if (Global.bullet != null)
+                        Game.game.physics.arcade.collide(Global.bullet.sprite, Global.blockedLayer, null, function () {
+                            //Global.bullet.sprite.destroy();
+                        }, this);
+                });
+            });
         };
         return MainRoom;
     }(Phaser.State));
@@ -300,10 +426,11 @@ var GameObjects;
 var GameObjects;
 (function (GameObjects) {
     var Enemy = (function () {
-        function Enemy(x, y) {
+        function Enemy(x, y, pathfinder) {
             this.sprite = Game.game.add.sprite(x, y, "enemy");
             this.sprite.anchor.setTo(0.5, 0.5);
             Game.game.physics.arcade.enable(this.sprite);
+            this.pathfinder = pathfinder;
             this.path = [];
             this.path_step = -1;
             this.speed = 300;
@@ -315,6 +442,14 @@ var GameObjects;
         }
         Enemy.prototype.update = function () {
             this.followPath();
+            var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
+            if (this.canSeePlayer(playerCoords, Global.blockedLayer)) {
+                this.latestPlayerCoords = playerCoords;
+                this.shootPlayer = true;
+            }
+            else {
+                this.shootPlayer = false;
+            }
             if (this.shootPlayer == true) {
                 if (this.numOfBullets > 0) {
                     this.shootBullet();
@@ -372,9 +507,6 @@ var GameObjects;
             var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, 0, this.bulletSpeed);
             bullet.towards(this.latestPlayerCoords.x, this.latestPlayerCoords.y);
             this.bullets.push(bullet);
-        };
-        Enemy.prototype.setPathFinder = function (pathfinder) {
-            this.pathfinder = pathfinder;
         };
         Enemy.prototype.Stop = function () {
             this.sprite.body.velocity.setTo(0, 0);

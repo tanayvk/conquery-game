@@ -21,10 +21,12 @@ module GameObjects {
 		oldPlayerCoords: Phaser.Point;
 		shootPlayer: boolean;
 
-		constructor(x, y) {
+		constructor(x, y, pathfinder) {
 			this.sprite = Game.game.add.sprite(x, y, "enemy");
 			this.sprite.anchor.setTo(0.5, 0.5);
 			Game.game.physics.arcade.enable(this.sprite);
+
+			this.pathfinder = pathfinder;
 
 			this.path = [];
 			this.path_step = -1;
@@ -41,6 +43,14 @@ module GameObjects {
 
 		update() {
 			this.followPath();
+
+			var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
+			if(this.canSeePlayer(playerCoords, Global.blockedLayer)) {
+				this.latestPlayerCoords = playerCoords;
+				this.shootPlayer = true;
+			} else {
+				this.shootPlayer = false;
+			}
 
 			if(this.shootPlayer == true) {
 				if(this.numOfBullets > 0) {
@@ -105,10 +115,6 @@ module GameObjects {
 			var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, 0, this.bulletSpeed);
 			bullet.towards(this.latestPlayerCoords.x, this.latestPlayerCoords.y);
 			this.bullets.push(bullet);
-		}
-
-		setPathFinder(pathfinder) {
-			this.pathfinder = pathfinder;
 		}
 
 		Stop() {

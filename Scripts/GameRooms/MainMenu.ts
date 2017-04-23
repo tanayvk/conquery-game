@@ -1,3 +1,4 @@
+/// <reference path="../GameObjects/Planet.ts" />
 
 module GameRooms {
 	export class MainMenu extends Phaser.State {
@@ -15,6 +16,7 @@ module GameRooms {
 
 		preload() {
 			Game.ui.load("Assets/UI/kenney.json");
+
 		}
 
 		create() {

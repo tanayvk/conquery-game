@@ -10,6 +10,8 @@
 		"Scripts/GameObjects/Enemy.ts",
 		"Scripts/GameObjects/Bullet.ts",
 		"Scripts/GameObjects/Photon.ts",
+		"Scripts/GameObjects/Planet.ts",
+		"Scripts/GameObjects/ProgressBar.ts",
     	// Game Rooms
     	"Scripts/GameRooms/Boot.ts",
     	"Scripts/GameRooms/Loader.ts",
