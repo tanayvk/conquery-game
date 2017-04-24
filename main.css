@@ -2,3 +2,9 @@ canvas {
 	display: block;
 	margin: auto;
 }
+
+#description {
+	display: block;
+	width: 750px;
+	margin: auto;
+}
