@@ -374,6 +374,9 @@ var GameRooms;
             this.planets.forEach(function (planet) {
                 planet.update();
             });
+            if (this.hasWon()) {
+                Game.game.state.start("game-over", true, false, true);
+            }
         };
         MainRoom.prototype.createPlanets = function () {
             var planet = new GameObjects.Planet(41 * 32, 70 * 32);
@@ -427,7 +430,6 @@ var GameRooms;
             });
             this.player.render();
             Game.game.debug.text(Game.game.time.fps, 50, 50);
-            Game.game.debug.text(this.guideText, Game.game.width);
         };
         MainRoom.prototype.cleanEnemies = function () {
             var enemies = this.enemies;
@@ -440,6 +442,16 @@ var GameRooms;
                     enemies.splice(index, 1);
                 }
             });
+        };
+        MainRoom.prototype.hasWon = function () {
+            var count = 0;
+            this.planets.forEach(function (planet) {
+                if (!planet.isActivated)
+                    count++;
+            });
+            if (count > 0)
+                return false;
+            return true;
         };
         return MainRoom;
     }(Phaser.State));
@@ -477,21 +489,12 @@ var GameRooms;
             this.panel.add(mainMenuButton);
             mainMenuButton.events.onInputUp.add(this.mainMenu);
             mainMenuButton.add(new SlickUI.Element.Text(0, 0, "Main Menu")).center();
-            if (this.hasWon) {
-                var style = { font: "bold 32px Arial", fill: "#1f2", boundsAlignH: "center", boundsAlignV: "middle" };
-                var text = Game.game.add.text(0, Game.game.height / 2 + 100, "You won! You've captured all the planets.", style);
-            }
-            else {
-                var style = { font: "bold 32px Arial", fill: "#f12", boundsAlignH: "center", boundsAlignV: "middle" };
-                var text = Game.game.add.text(0, Game.game.height / 2 + 100, "You lose! You were killed by an enemy.", style);
-                text.setTextBounds(0, 450, 1000, 750);
-            }
         };
         GameOver.prototype.render = function () {
-            // if(this.hasWon)
-            // 	Game.game.debug.text("You won! You've captured all the planets.", , "#11ff22");
-            // else
-            // 	Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
+            if (this.hasWon)
+                Game.game.debug.text("You won! You've captured all the planets.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#11ff22");
+            else
+                Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
         };
         GameOver.prototype.tryAgain = function () {
             Game.game.state.start("main-room");
@@ -600,7 +603,7 @@ var GameObjects;
             this.currentPatrol = 0;
             this.resetPath();
             this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
-            this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.giveBullet, this);
+            this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 4, this.giveBullet, this);
         }
         Enemy.prototype.update = function () {
             this.cleanBulletsArray();
@@ -728,7 +731,7 @@ var GameObjects;
                     var bullet = bullet;
                     Game.game.physics.arcade.overlap(bullet.sprite, Global.player.sprite, null, function () {
                         bullet.clean = true;
-                        Global.player.health = Global.player.health - 3;
+                        Global.player.health = Global.player.health - 5;
                     }, this);
                 }
             });

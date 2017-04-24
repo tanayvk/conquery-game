@@ -60,7 +60,11 @@ module GameRooms {
 
 			this.planets.forEach(function(planet) {
 				planet.update();
-			})
+			});
+
+			if(this.hasWon()) {
+				Game.game.state.start("game-over", true, false, true);
+			}
 		}
 
 		createPlanets() {
@@ -120,7 +124,6 @@ module GameRooms {
 			this.player.render();
 
 			Game.game.debug.text(Game.game.time.fps, 50, 50);
-			Game.game.debug.text(this.guideText, Game.game.width)
 		}
 
 		cleanEnemies() {
@@ -135,6 +138,16 @@ module GameRooms {
 					enemies.splice(index, 1);
 				}
 			});
+		}
+		hasWon() {
+			var count = 0;
+			this.planets.forEach(function(planet) {
+				if(!planet.isActivated)
+					count++;
+			});
+			if(count > 0)
+				return false;
+			return true;
 		}
 	}
 }

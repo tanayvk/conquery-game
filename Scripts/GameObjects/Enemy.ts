@@ -56,7 +56,7 @@ module GameObjects {
 			this.resetPath();
 
 			this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
-			this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.giveBullet, this);
+			this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 4, this.giveBullet, this);
 		}
 
 		update() {
@@ -207,7 +207,7 @@ module GameObjects {
 					var bullet = bullet;
 					Game.game.physics.arcade.overlap(bullet.sprite, Global.player.sprite, null, function() {
 						bullet.clean = true;
-						Global.player.health = Global.player.health - 3;
+						Global.player.health = Global.player.health - 5;
 					}, this);
 				}
 			});
