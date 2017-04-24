@@ -16,18 +16,23 @@ var GameObjects;
             this.sprite.anchor.setTo(0.5, 0.5);
             this.SPEED = 500;
             Game.game.physics.arcade.enable(this.sprite);
+            this.health = 100;
+            this.progressBar = new GameObjects.ProgressBar(Game.game.width - 200, 50, 150, 30, this.health);
+            this.progressBar.setColors("#ff1111", "#11ff11");
         }
         Player.prototype.Move = function () {
+            this.isMoving = true;
             Game.game.physics.arcade.moveToPointer(this.sprite, this.SPEED);
         };
         Player.prototype.Stop = function () {
+            this.isMoving = false;
             this.sprite.body.velocity.x = 0;
             this.sprite.body.velocity.y = 0;
         };
         Player.prototype.isNearPointer = function () {
             var mouseX = Game.game.input.mousePointer.x;
             var mouseY = Game.game.input.mousePointer.y;
-            if (Phaser.Math.distance(this.sprite.x, this.sprite.y, mouseX, mouseY) <= 50) {
+            if (Phaser.Math.distance(this.sprite.x, this.sprite.y, Game.game.camera.x + mouseX, Game.game.camera.y + mouseY) <= 50) {
                 return true;
             }
             return false;
@@ -39,6 +44,19 @@ var GameObjects;
             else {
                 this.Stop();
             }
+            if (this.health == 0) {
+                this.gameOver();
+            }
+        };
+        Player.prototype.render = function () {
+            this.renderHealth();
+        };
+        Player.prototype.renderHealth = function () {
+            this.progressBar.percent = this.health;
+            this.progressBar.draw();
+        };
+        Player.prototype.gameOver = function () {
+            Game.game.state.start("game-over");
         };
         return Player;
     }());
@@ -47,8 +65,7 @@ var GameObjects;
 var GameObjects;
 (function (GameObjects) {
     var Bullet = (function () {
-        function Bullet(x, y, angle, speed) {
-            this.angle = angle;
+        function Bullet(x, y, speed) {
             this.speed = speed;
             this.sprite = Game.game.add.sprite(x, y, "bullet");
             Game.game.physics.arcade.enable(this.sprite);
@@ -56,14 +73,16 @@ var GameObjects;
             Game.game.time.events.add(Phaser.Timer.SECOND * 3, this.sprite.destroy, this.sprite);
         }
         Bullet.prototype.update = function () {
-            this.sprite.angle = this.angle;
-            this.sprite.x += Math.cos((Math.PI / 180) * this.angle) * this.speed;
-            this.sprite.y += Math.sin((Math.PI / 180) * this.angle) * this.speed;
+            this.sprite.angle = (180 / Math.PI) * Math.atan2(this.sprite.body.velocity.y, this.sprite.body.velocity.x);
+            Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer, function () {
+                this.clean = true;
+            }, null, this);
         };
         Bullet.prototype.towards = function (x, y) {
             var deltaX = x - this.sprite.x;
             var deltaY = y - this.sprite.y;
-            this.angle = (180 / Math.PI) * Math.atan2(deltaY, deltaX);
+            var velocity = new Phaser.Point(deltaX, deltaY).normalize().multiply(this.speed, this.speed);
+            this.sprite.body.velocity.setTo(velocity.x, velocity.y);
         };
         return Bullet;
     }());
@@ -122,6 +141,8 @@ var GameRooms;
             this.game.load.image("bullet", "Assets/Images/bullet.png");
             this.game.load.image("planet", "Assets/Images/planet.png");
             this.game.load.image("planet_activated", "Assets/Images/planet_activated.png");
+            this.game.load.image("game-over", "Assets/Images/game-over.png");
+            Game.ui.load("Assets/UI/kenney.json");
         };
         Loader.prototype.create = function () {
             this.game.state.start("main-menu");
@@ -142,19 +163,24 @@ var GameObjects;
             this.loadTime = 3;
             this.loadTimer = Game.game.time.create(false);
             this.loadTimer.add(this.loadTime * Phaser.Timer.SECOND, this.activatePlanet, this);
-            this.loadTimer.start();
-            this.loadTimer.pause();
             this.progressBar = new GameObjects.ProgressBar(Game.game.width / 2 - 100, Game.game.height - 100, 200, 30, 50);
+            this.progressBar.setColors("#eeeeee", "#2233bb", "#ff1111");
+            this.progressBar.showText = true;
             this.bullets = new Array();
-            this.bulletSpeed = 30;
+            this.bulletSpeed = 1000;
             this.maxBullets = this.numOfBullets = 3;
             Game.game.time.events.loop(Phaser.Timer.SECOND / 3, this.giveBullet, this);
         }
         Planet.prototype.update = function () {
-            if (!this.isActivated && this.actionKey.isDown && Game.game.physics.arcade.collide(this.sprite, Global.player.sprite)) {
-                this.loadTimer.resume();
+            if (!this.isActivated && this.actionKey.isDown && Game.game.physics.arcade.overlap(this.sprite, Global.player.sprite)) {
+                if (this.loadTimer.seconds == 0)
+                    this.loadTimer.start();
+                else
+                    this.loadTimer.resume();
+                this.progressBar.text = "Capturing...";
             }
             else {
+                this.progressBar.text = "Hold space to capture planet.";
                 this.loadTimer.pause();
             }
             var planet = this;
@@ -167,16 +193,17 @@ var GameObjects;
                 });
             }
             this.bullets.forEach(function (bullet) {
-                bullet.update();
-                Global.bullet = bullet;
-                Game.game.physics.arcade.collide(Global.bullet.sprite, planet.getEnemiesArray(), null, function () {
-                    Global.bullet.sprite.destroy();
-                    Global.bullet = null;
-                }, this);
+                if (bullet != undefined && !bullet.clean) {
+                    bullet.update();
+                    Game.game.physics.arcade.overlap(bullet.sprite, planet.getEnemiesArray(), null, function () {
+                        bullet.clean = true;
+                    }, this);
+                }
             });
+            this.cleanBulletsArray();
         };
         Planet.prototype.render = function () {
-            if (Game.game.physics.arcade.collide(this.sprite, Global.player.sprite) && !this.isActivated) {
+            if (Game.game.physics.arcade.overlap(this.sprite, Global.player.sprite) && !this.isActivated) {
                 this.progressBar.percent = (this.loadTimer.seconds / this.loadTime) * 100;
                 this.progressBar.draw();
             }
@@ -193,7 +220,7 @@ var GameObjects;
             return photon.isFree();
         };
         Planet.prototype.Shoot = function (enemy) {
-            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, 0, this.bulletSpeed);
+            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
             bullet.towards(enemy.sprite.x, enemy.sprite.y);
             this.bullets.push(bullet);
         };
@@ -210,6 +237,18 @@ var GameObjects;
         Planet.prototype.giveBullet = function () {
             if (this.numOfBullets != this.maxBullets)
                 this.numOfBullets++;
+        };
+        Planet.prototype.cleanBulletsArray = function () {
+            var toBeDeleted = new Array();
+            var bullets = this.bullets;
+            this.bullets.forEach(function (bullet) {
+                if (bullet.clean)
+                    toBeDeleted.push(bullets.indexOf(bullet));
+            });
+            toBeDeleted.forEach(function (index) {
+                bullets[index].sprite.destroy();
+                delete bullets[index];
+            });
         };
         return Planet;
     }());
@@ -230,19 +269,15 @@ var GameRooms;
             Game.ui.load("Assets/UI/kenney.json");
         };
         MainMenu.prototype.create = function () {
-            var panelX = this.game.world.centerX - this.PANEL_WIDTH / 2;
-            var panelY = this.game.world.centerY - this.PANEL_HEIGHT / 2;
+            var panelX = this.game.width / 2 - this.PANEL_WIDTH / 2;
+            var panelY = this.game.height / 2 - this.PANEL_HEIGHT / 2;
             this.panel = new SlickUI.Element.Panel(panelX, panelY, this.PANEL_WIDTH, this.PANEL_HEIGHT);
             Game.ui.add(this.panel);
             var newGameButton;
-            newGameButton = new SlickUI.Element.Button(10, 10, 150, 50);
+            newGameButton = new SlickUI.Element.Button(10, 10, 170, 50);
             this.panel.add(newGameButton);
             newGameButton.events.onInputUp.add(this.newGame);
             newGameButton.add(new SlickUI.Element.Text(0, 0, "New Game")).center();
-            // var button;
-            // this.panel.add(button = new SlickUI.Element.Button(0, 0, 140, 80));
-            // button.events.onInputUp.add(function() { console.log('Clicked button'); });
-            // button.add(new SlickUI.Element.Text(0, 0, "My button")).center();
         };
         MainMenu.prototype.newGame = function () {
             Game.game.state.start("main-room");
@@ -260,9 +295,20 @@ var GameObjects;
             this.width = width;
             this.height = height;
             this.percent = percent;
+            this.text = "";
+            this.showText = true;
             this.backgroundColor = "#ffffff";
             this.foregroundColor = "#ffff00";
+            this.textColor = "#ffffff";
         }
+        ProgressBar.prototype.setColors = function (backgroundColor, foregroundColor, textColor) {
+            this.backgroundColor = backgroundColor;
+            this.foregroundColor = foregroundColor;
+            this.textColor = textColor;
+        };
+        ProgressBar.prototype.setString = function (text) {
+            this.text = text;
+        };
         ProgressBar.prototype.getWidth = function () {
             return ((this.percent / 100) * this.width);
         };
@@ -273,6 +319,8 @@ var GameObjects;
             this.frontRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.getWidth(), this.height);
             Game.game.debug.geom(this.backRect, this.backgroundColor);
             Game.game.debug.geom(this.frontRect, this.foregroundColor);
+            if (this.showText)
+                Game.game.debug.text(this.text, this.x, this.y - 10, this.textColor);
         };
         return ProgressBar;
     }());
@@ -292,11 +340,13 @@ var GameRooms;
             Game.game.map.addTilesetImage('enemy', 'wall');
             this.backgroundLayer = Game.game.map.createLayer('backgroundLayer');
             this.backgroundLayer.resizeWorld();
-            Global.blockedLayer = this.blockedLayer = Game.game.map.createLayer('collisions');
+            this.blockedLayer = Game.game.map.createLayer('collisions');
             Game.game.physics.arcade.enable(this.blockedLayer);
             Game.game.map.setCollisionBetween(1, 10000, true, this.blockedLayer);
+            Global.blockedLayer = this.blockedLayer;
             var tile_dimensions = new Phaser.Point(Game.game.map.tileWidth, Game.game.map.tileHeight);
             this.pathfinder = Game.game.plugins.add(Pathfinding, Game.game.map.layers[1].data, [-1], tile_dimensions);
+            this.planets = new Array();
             this.createPlanets();
             Global.enemies = this.enemies = new Array();
             this.createEnemies();
@@ -306,17 +356,24 @@ var GameRooms;
             Game.game.physics.arcade.collide(this.player.sprite, this.blockedLayer);
             this.player.update();
             this.updateEnemies();
-            this.planet.update();
-            var player = this.player;
-            var blockedLayer = this.blockedLayer;
+            this.planets.forEach(function (planet) {
+                planet.update();
+            });
         };
         MainRoom.prototype.createPlanets = function () {
-            this.planet = new GameObjects.Planet(750, 700);
+            var planet = new GameObjects.Planet(725, 700);
+            this.planets.push(planet);
+            planet = new GameObjects.Planet(900, 1000);
+            this.planets.push(planet);
         };
         MainRoom.prototype.createEnemies = function () {
             var enemy = new GameObjects.Enemy(160, 192, this.pathfinder);
+            enemy.addPatrolPoint(new Phaser.Point(160, 192));
+            enemy.addPatrolPoint(new Phaser.Point(250, 1200));
             this.enemies.push(enemy);
-            enemy = new GameObjects.Enemy(700, 600, this.pathfinder);
+            var enemy = new GameObjects.Enemy(250, 1200, this.pathfinder);
+            enemy.addPatrolPoint(new Phaser.Point(250, 1200));
+            enemy.addPatrolPoint(new Phaser.Point(160, 192));
             this.enemies.push(enemy);
         };
         MainRoom.prototype.createPlayer = function () {
@@ -325,35 +382,69 @@ var GameRooms;
             Game.game.camera.follow(this.player.sprite);
         };
         MainRoom.prototype.render = function () {
-            this.planet.render();
-            Game.game.debug.text(this.planet.loadTimer.seconds);
+            this.planets.forEach(function (planet) {
+                planet.render();
+            });
+            this.player.render();
+            Game.game.debug.text(this.player.sprite.x + " " + this.player.sprite.y, 100, 150);
         };
         MainRoom.prototype.updateEnemies = function () {
             this.enemies.forEach(function (enemy) {
                 enemy.update();
-                enemy.bullets.forEach(function (bullet) {
-                    Global.bullet = bullet;
-                    bullet.update();
-                    Game.game.physics.arcade.collide(Global.bullet.sprite, Global.player.sprite, null, function () {
-                        Global.bullet.sprite.destroy();
-                        Global.bullet = null;
-                    }, this);
-                    if (Global.bullet != null)
-                        Game.game.physics.arcade.collide(Global.bullet.sprite, Global.blockedLayer, null, function () {
-                            //Global.bullet.sprite.destroy();
-                        }, this);
-                });
             });
         };
         return MainRoom;
     }(Phaser.State));
     GameRooms.MainRoom = MainRoom;
 })(GameRooms || (GameRooms = {}));
+var GameRooms;
+(function (GameRooms) {
+    var GameOver = (function (_super) {
+        __extends(GameOver, _super);
+        function GameOver() {
+            var _this = _super.call(this) || this;
+            _this.PANEL_WIDTH = 200;
+            _this.PANEL_HEIGHT = 140;
+            return _this;
+        }
+        GameOver.prototype.init = function () {
+            this.game.add.sprite(0, 0, "game-over");
+        };
+        GameOver.prototype.preload = function () {
+            Game.ui.load("Assets/UI/kenney.json");
+        };
+        GameOver.prototype.create = function () {
+            var panelX = this.game.width / 2 - this.PANEL_WIDTH / 2;
+            var panelY = this.game.height / 2 - this.PANEL_HEIGHT / 2;
+            this.panel = new SlickUI.Element.Panel(panelX, panelY, this.PANEL_WIDTH, this.PANEL_HEIGHT);
+            Game.ui.add(this.panel);
+            var tryAgainButton;
+            tryAgainButton = new SlickUI.Element.Button(10, 10, 170, 50);
+            this.panel.add(tryAgainButton);
+            tryAgainButton.events.onInputUp.add(this.tryAgain);
+            tryAgainButton.add(new SlickUI.Element.Text(0, 0, "Try Again")).center();
+            var mainMenuButton;
+            mainMenuButton = new SlickUI.Element.Button(10, 70, 170, 50);
+            this.panel.add(mainMenuButton);
+            mainMenuButton.events.onInputUp.add(this.mainMenu);
+            mainMenuButton.add(new SlickUI.Element.Text(0, 0, "Main Menu")).center();
+        };
+        GameOver.prototype.tryAgain = function () {
+            Game.game.state.start("main-room");
+        };
+        GameOver.prototype.mainMenu = function () {
+            Game.game.state.start("main-menu");
+        };
+        return GameOver;
+    }(Phaser.State));
+    GameRooms.GameOver = GameOver;
+})(GameRooms || (GameRooms = {}));
 /// <reference path="3rdParty/phaser.d.ts" />
 /// <reference path="GameRooms/Boot.ts" />
 /// <reference path="GameRooms/Loader.ts" />
 /// <reference path="GameRooms/MainMenu.ts" />
 /// <reference path="GameRooms/MainRoom.ts" />
+/// <reference path="GameRooms/GameOver.ts" />
 var Game;
 (function (Game) {
     var TestGame = (function () {
@@ -367,6 +458,7 @@ var Game;
             Game.game.state.add("loader", GameRooms.Loader);
             Game.game.state.add("main-menu", GameRooms.MainMenu);
             Game.game.state.add("main-room", GameRooms.MainRoom);
+            Game.game.state.add("game-over", GameRooms.GameOver);
             Game.game.state.start("boot");
         };
         return TestGame;
@@ -391,7 +483,7 @@ var GameObjects;
             this.getVelocity();
             // Create a sprite for checking collisions
             this.sprite = Game.game.add.sprite(this.p1.x, this.p1.y);
-            this.sprite.width = this.sprite.height = 32;
+            this.sprite.width = this.sprite.height = 5;
             this.sprite.anchor.setTo(0.5, 0.5);
             Game.game.physics.arcade.enable(this.sprite);
             this.sprite.visible = false;
@@ -414,7 +506,6 @@ var GameObjects;
             this.velocity.x = this.p2.x - this.p1.x;
             this.velocity.y = this.p2.y - this.p1.y;
             this.velocity.normalize();
-            this.velocity.divide(5, 5);
         };
         return Photon;
     }());
@@ -430,20 +521,22 @@ var GameObjects;
             this.sprite = Game.game.add.sprite(x, y, "enemy");
             this.sprite.anchor.setTo(0.5, 0.5);
             Game.game.physics.arcade.enable(this.sprite);
-            this.pathfinder = pathfinder;
-            this.path = [];
-            this.path_step = -1;
-            this.speed = 300;
+            this.speed = 100;
             this.bullets = new Array();
-            this.bulletSpeed = 30;
+            this.bulletSpeed = 1000;
             this.numOfBullets = this.maxBullets = 1;
-            Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.followPlayer, this);
-            Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.giveBullet, this);
+            this.pathfinder = pathfinder;
+            this.patrolPoints = new Array();
+            this.currentPatrol = 0;
+            this.resetPath();
+            Game.game.time.events.loop(Phaser.Timer.SECOND / 1, this.followPlayer, this);
+            Game.game.time.events.loop(Phaser.Timer.SECOND / 3, this.giveBullet, this);
         }
         Enemy.prototype.update = function () {
+            this.cleanBulletsArray();
             this.followPath();
             var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
-            if (this.canSeePlayer(playerCoords, Global.blockedLayer)) {
+            if (this.canSeePlayer()) {
                 this.latestPlayerCoords = playerCoords;
                 this.shootPlayer = true;
             }
@@ -456,11 +549,12 @@ var GameObjects;
                     this.numOfBullets--;
                 }
             }
+            this.updateBullets();
         };
         Enemy.prototype.reached_target_position = function (target_position) {
             var distance;
             distance = Phaser.Point.distance(this.sprite, target_position);
-            return distance < 3;
+            return distance < 1;
         };
         Enemy.prototype.MoveTo = function (target_position) {
             this.pathfinder.find_path(this.sprite, target_position, this.move_through_path, this);
@@ -477,6 +571,8 @@ var GameObjects;
         Enemy.prototype.resetPath = function () {
             this.path = [];
             this.path_step = -1;
+            this.Stop();
+            Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
         };
         Enemy.prototype.followPath = function () {
             var next_position, velocity;
@@ -495,37 +591,76 @@ var GameObjects;
                         this.path_step += 1;
                     }
                     else {
-                        this.path = [];
-                        this.path_step = -1;
-                        this.sprite.body.velocity.x = 0;
-                        this.sprite.body.velocity.y = 0;
+                        this.resetPath();
                     }
                 }
             }
         };
         Enemy.prototype.shootBullet = function () {
-            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, 0, this.bulletSpeed);
+            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
             bullet.towards(this.latestPlayerCoords.x, this.latestPlayerCoords.y);
             this.bullets.push(bullet);
         };
         Enemy.prototype.Stop = function () {
             this.sprite.body.velocity.setTo(0, 0);
         };
-        Enemy.prototype.canSeePlayer = function (playerCoords, wallSprite) {
-            var photon = new GameObjects.Photon(new Phaser.Point(this.sprite.x, this.sprite.y), playerCoords, wallSprite);
+        Enemy.prototype.canSeePlayer = function () {
+            var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
+            var photon = new GameObjects.Photon(new Phaser.Point(this.sprite.x, this.sprite.y), playerCoords, Global.blockedLayer);
             return photon.isFree();
         };
         Enemy.prototype.followPlayer = function () {
-            if (this.latestPlayerCoords != this.oldPlayerCoords) {
-                this.oldPlayerCoords = this.latestPlayerCoords;
+            if (this.canSeePlayer() && !Global.player.isMoving) {
                 this.resetPath();
-                this.Stop();
+                return;
+            }
+            if ((this.latestPlayerCoords != this.oldPlayerCoords)) {
+                this.oldPlayerCoords = this.latestPlayerCoords;
+                //this.resetPath();
                 this.MoveTo(this.latestPlayerCoords);
             }
         };
         Enemy.prototype.giveBullet = function () {
             if (this.numOfBullets != this.maxBullets)
                 this.numOfBullets++;
+        };
+        Enemy.prototype.Patrol = function () {
+            if (this.path = [] && !this.canSeePlayer() && this.patrolPoints.length > 0) {
+                if (this.patrolPoints[++this.currentPatrol] != undefined) {
+                    this.MoveTo(this.patrolPoints[this.currentPatrol]);
+                }
+                else {
+                    this.currentPatrol = 0;
+                    this.MoveTo(this.patrolPoints[0]);
+                }
+            }
+        };
+        Enemy.prototype.addPatrolPoint = function (point) {
+            this.patrolPoints.push(point);
+        };
+        Enemy.prototype.cleanBulletsArray = function () {
+            var toBeDeleted = new Array();
+            var bullets = this.bullets;
+            this.bullets.forEach(function (bullet) {
+                if (bullet.clean)
+                    toBeDeleted.push(bullets.indexOf(bullet));
+            });
+            toBeDeleted.forEach(function (index) {
+                bullets[index].sprite.destroy();
+                delete bullets[index];
+            });
+        };
+        Enemy.prototype.updateBullets = function () {
+            this.bullets.forEach(function (bullet) {
+                if (bullet != undefined && !bullet.clean) {
+                    bullet.update();
+                    var bullet = bullet;
+                    Game.game.physics.arcade.collide(bullet.sprite, Global.player.sprite, null, function () {
+                        bullet.clean = true;
+                        Global.player.health--;
+                    }, this);
+                }
+            });
         };
         return Enemy;
     }());

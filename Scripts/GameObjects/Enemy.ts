@@ -21,31 +21,36 @@ module GameObjects {
 		oldPlayerCoords: Phaser.Point;
 		shootPlayer: boolean;
 
+		patrolPoints: Array<Phaser.Point>;
+		currentPatrol: number;
+		isPatrolling: boolean;
+
 		constructor(x, y, pathfinder) {
 			this.sprite = Game.game.add.sprite(x, y, "enemy");
 			this.sprite.anchor.setTo(0.5, 0.5);
 			Game.game.physics.arcade.enable(this.sprite);
 
-			this.pathfinder = pathfinder;
-
-			this.path = [];
-			this.path_step = -1;
-
-			this.speed = 300;
+			this.speed = 100;
 
 			this.bullets = new Array<GameObjects.Bullet>();
-			this.bulletSpeed = 30;
+			this.bulletSpeed = 1000;
 			this.numOfBullets = this.maxBullets = 1;
 
-			Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.followPlayer, this);
-			Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.giveBullet, this);
+			this.pathfinder = pathfinder;
+			this.patrolPoints = new Array<Phaser.Point>();
+			this.currentPatrol = 0;
+			this.resetPath();
+
+			Game.game.time.events.loop(Phaser.Timer.SECOND / 1, this.followPlayer, this);
+			Game.game.time.events.loop(Phaser.Timer.SECOND / 3, this.giveBullet, this);
 		}
 
 		update() {
+			this.cleanBulletsArray();
 			this.followPath();
 
 			var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
-			if(this.canSeePlayer(playerCoords, Global.blockedLayer)) {
+			if(this.canSeePlayer()) {
 				this.latestPlayerCoords = playerCoords;
 				this.shootPlayer = true;
 			} else {
@@ -58,12 +63,13 @@ module GameObjects {
 					this.numOfBullets--;
 				}
 			}
+			this.updateBullets();
 		}
 
 		reached_target_position(target_position) {
 		    var distance;
 		    distance = Phaser.Point.distance(this.sprite, target_position);
-		    return distance < 3;
+		    return distance < 1;
 		}
 
 		MoveTo(target_position) {
@@ -82,6 +88,9 @@ module GameObjects {
 		resetPath() {
 			this.path = [];
 			this.path_step = -1;
+
+			this.Stop();
+			Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
 		}
 
 		followPath() {
@@ -102,17 +111,14 @@ module GameObjects {
 					if (this.path_step < this.path.length - 1) {
 						this.path_step += 1;
 					} else {
-						this.path = [];
-						this.path_step = -1;
-						this.sprite.body.velocity.x = 0;
-						this.sprite.body.velocity.y = 0;
+						this.resetPath();
 					}
 				}
 			}
 		}
 
 		shootBullet() {
-			var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, 0, this.bulletSpeed);
+			var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
 			bullet.towards(this.latestPlayerCoords.x, this.latestPlayerCoords.y);
 			this.bullets.push(bullet);
 		}
@@ -121,17 +127,24 @@ module GameObjects {
 			this.sprite.body.velocity.setTo(0, 0);
 		}
 
-		canSeePlayer(playerCoords, wallSprite) {
-			var photon = new GameObjects.Photon(new Phaser.Point(this.sprite.x, this.sprite.y), playerCoords, wallSprite);
+		canSeePlayer() {
+			var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
+			var photon = new GameObjects.Photon(new Phaser.Point(this.sprite.x, this.sprite.y), playerCoords, Global.blockedLayer);
 			return photon.isFree();
 		}
 
 		followPlayer() {
-			if(this.latestPlayerCoords != this.oldPlayerCoords) {
+
+			if(this.canSeePlayer() && !Global.player.isMoving)
+			{
+				this.resetPath();
+				return;
+			}
+
+			if((this.latestPlayerCoords != this.oldPlayerCoords)) {
 				this.oldPlayerCoords = this.latestPlayerCoords;
 
-				this.resetPath();
-				this.Stop();
+				//this.resetPath();
 				this.MoveTo(this.latestPlayerCoords);
 			}
 		}
@@ -141,5 +154,47 @@ module GameObjects {
 				this.numOfBullets++;
 		}
 
+		Patrol() {
+			if(this.path = [] && !this.canSeePlayer() && this.patrolPoints.length > 0) {
+				if(this.patrolPoints[++this.currentPatrol] != undefined) {
+					this.MoveTo(this.patrolPoints[this.currentPatrol]);
+				} else {
+					this.currentPatrol = 0;
+					this.MoveTo(this.patrolPoints[0]);
+				}
+			}
+		}
+
+		addPatrolPoint(point) {
+			this.patrolPoints.push(point);
+		}
+
+		cleanBulletsArray() {
+			var toBeDeleted = new Array<number>();
+			var bullets = this.bullets;
+			this.bullets.forEach(function(bullet) {
+				if(bullet.clean)
+					toBeDeleted.push(bullets.indexOf(bullet));
+			});
+
+			toBeDeleted.forEach(function(index) {
+				bullets[index].sprite.destroy();
+				delete bullets[index];
+			});
+		}
+
+		updateBullets() {
+			this.bullets.forEach(function(bullet) {
+				if(bullet != undefined && !bullet.clean) {
+					bullet.update();
+
+					var bullet = bullet;
+					Game.game.physics.arcade.collide(bullet.sprite, Global.player.sprite, null, function() {
+						bullet.clean = true;
+						Global.player.health--;
+					}, this);
+				}
+			});
+		}
 	}
 }

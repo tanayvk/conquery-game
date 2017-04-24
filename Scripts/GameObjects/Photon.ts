@@ -23,7 +23,7 @@ module GameObjects {
 
 			// Create a sprite for checking collisions
 			this.sprite = Game.game.add.sprite(this.p1.x, this.p1.y);
-			this.sprite.width = this.sprite.height = 32;
+			this.sprite.width = this.sprite.height = 5;
 			this.sprite.anchor.setTo(0.5, 0.5);
 
 			Game.game.physics.arcade.enable(this.sprite);
@@ -53,7 +53,6 @@ module GameObjects {
 			this.velocity.y = this.p2.y - this.p1.y;
 
 			this.velocity.normalize();
-			this.velocity.divide(5, 5);
 		}
 	}
 }

@@ -6,8 +6,12 @@ module GameObjects {
 		height: number;
 		percent: number;
 
+		text: String;
+		showText: boolean;
+
 		backgroundColor;
 		foregroundColor;
+		textColor;
 
 		backRect;
 		frontRect;
@@ -19,8 +23,22 @@ module GameObjects {
 			this.height = height;
 			this.percent = percent;
 
+			this.text = "";
+			this.showText = true;
+
 			this.backgroundColor = "#ffffff";
 			this.foregroundColor = "#ffff00";
+			this.textColor = "#ffffff";
+		}
+
+		setColors(backgroundColor, foregroundColor, textColor) {
+			this.backgroundColor = backgroundColor;
+			this.foregroundColor = foregroundColor;
+			this.textColor = textColor;
+		}
+
+		setString(text) {
+			this.text = text;
 		}
 
 		getWidth() {
@@ -36,6 +54,9 @@ module GameObjects {
 
 			Game.game.debug.geom(this.backRect, this.backgroundColor);
 			Game.game.debug.geom(this.frontRect, this.foregroundColor);
+
+			if(this.showText)
+				Game.game.debug.text(this.text, this.x, this.y - 10, this.textColor);
 		}
 	}
 }

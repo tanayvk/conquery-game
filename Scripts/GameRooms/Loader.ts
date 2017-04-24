@@ -25,6 +25,8 @@ module GameRooms {
 			this.game.load.image("bullet", "Assets/Images/bullet.png");
 			this.game.load.image("planet", "Assets/Images/planet.png");
 			this.game.load.image("planet_activated", "Assets/Images/planet_activated.png");
+			this.game.load.image("game-over", "Assets/Images/game-over.png");
+			Game.ui.load("Assets/UI/kenney.json");
 		}
 
 		create() {
