@@ -14,11 +14,8 @@ module GameRooms {
 			this.game.stage.backgroundColor = "#000";
 			this.game.stage.disableVisibilityChange = true;
 			this.game.physics.startSystem(Phaser.Physics.ARCADE);
-
-			Global.graphics = this.game.add.graphics(1000, 750);
-
+			this.game.time.advancedTiming = true;
 			this.game.state.start("loader");
-
 		}
 
 	}

@@ -44,7 +44,7 @@ var GameObjects;
             else {
                 this.Stop();
             }
-            if (this.health == 0) {
+            if (this.health <= 0) {
                 this.gameOver();
             }
         };
@@ -56,7 +56,7 @@ var GameObjects;
             this.progressBar.draw();
         };
         Player.prototype.gameOver = function () {
-            Game.game.state.start("game-over");
+            Game.game.state.start("game-over", true, false, false);
         };
         return Player;
     }());
@@ -74,9 +74,8 @@ var GameObjects;
         }
         Bullet.prototype.update = function () {
             this.sprite.angle = (180 / Math.PI) * Math.atan2(this.sprite.body.velocity.y, this.sprite.body.velocity.x);
-            Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer, function () {
+            if (Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer))
                 this.clean = true;
-            }, null, this);
         };
         Bullet.prototype.towards = function (x, y) {
             var deltaX = x - this.sprite.x;
@@ -103,7 +102,7 @@ var GameRooms;
             this.game.stage.backgroundColor = "#000";
             this.game.stage.disableVisibilityChange = true;
             this.game.physics.startSystem(Phaser.Physics.ARCADE);
-            Global.graphics = this.game.add.graphics(1000, 750);
+            this.game.time.advancedTiming = true;
             this.game.state.start("loader");
         };
         return Boot;
@@ -128,11 +127,10 @@ var GameRooms;
             return _super.call(this) || this;
         }
         Loader.prototype.init = function () {
-            var loaderBar = this.game.add.sprite(this.game.world.centerX, this.game.world.centerY + 256, "loaderBar");
-            loaderBar.anchor.setTo(0.5, 0.5);
-            this.game.load.setPreloadSprite(loaderBar);
         };
         Loader.prototype.preload = function () {
+            var loaderBar = this.game.add.sprite(this.game.world.centerX - 128, this.game.world.centerY + 256, "loaderBar");
+            this.game.load.setPreloadSprite(loaderBar);
             Game.ui = this.game.plugins.add(Phaser.Plugin.SlickUI);
             this.game.load.tilemap("level2", "Assets/Tilemaps/level2.json", null, Phaser.Tilemap.TILED_JSON);
             this.game.load.image("player", "Assets/Images/player.png");
@@ -193,11 +191,15 @@ var GameObjects;
                 });
             }
             this.bullets.forEach(function (bullet) {
-                if (bullet != undefined && !bullet.clean) {
+                if (bullet.sprite.body != null) {
+                    var bul = bullet;
                     bullet.update();
-                    Game.game.physics.arcade.overlap(bullet.sprite, planet.getEnemiesArray(), null, function () {
-                        bullet.clean = true;
-                    }, this);
+                    Global.enemies.forEach(function (enemy) {
+                        if (Game.game.physics.arcade.overlap(enemy.sprite, bul.sprite)) {
+                            bul.clean = true;
+                            enemy.health = enemy.health - 5;
+                        }
+                    });
                 }
             });
             this.cleanBulletsArray();
@@ -239,15 +241,14 @@ var GameObjects;
                 this.numOfBullets++;
         };
         Planet.prototype.cleanBulletsArray = function () {
-            var toBeDeleted = new Array();
             var bullets = this.bullets;
             this.bullets.forEach(function (bullet) {
-                if (bullet.clean)
-                    toBeDeleted.push(bullets.indexOf(bullet));
-            });
-            toBeDeleted.forEach(function (index) {
-                bullets[index].sprite.destroy();
-                delete bullets[index];
+                if (bullet.clean) {
+                    bullet.sprite.destroy();
+                    var index = bullets.indexOf(bullet);
+                    delete bullets[index];
+                    bullets.splice(index, 1);
+                }
             });
         };
         return Planet;
@@ -300,6 +301,7 @@ var GameObjects;
             this.backgroundColor = "#ffffff";
             this.foregroundColor = "#ffff00";
             this.textColor = "#ffffff";
+            this.fixedCamera = true;
         }
         ProgressBar.prototype.setColors = function (backgroundColor, foregroundColor, textColor) {
             this.backgroundColor = backgroundColor;
@@ -313,10 +315,16 @@ var GameObjects;
             return ((this.percent / 100) * this.width);
         };
         ProgressBar.prototype.draw = function () {
-            var cameraX = Game.game.camera.x;
-            var cameraY = Game.game.camera.y;
-            this.backRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.width, this.height);
-            this.frontRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.getWidth(), this.height);
+            if (this.fixedCamera) {
+                var cameraX = Game.game.camera.x;
+                var cameraY = Game.game.camera.y;
+                this.backRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.width, this.height);
+                this.frontRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.getWidth(), this.height);
+            }
+            else {
+                this.backRect = new Phaser.Rectangle(this.x, this.y, this.width, this.height);
+                this.frontRect = new Phaser.Rectangle(this.x, this.y, this.getWidth(), this.height);
+            }
             Game.game.debug.geom(this.backRect, this.backgroundColor);
             Game.game.debug.geom(this.frontRect, this.foregroundColor);
             if (this.showText)
@@ -355,7 +363,15 @@ var GameRooms;
         MainRoom.prototype.update = function () {
             Game.game.physics.arcade.collide(this.player.sprite, this.blockedLayer);
             this.player.update();
-            this.updateEnemies();
+            this.enemies.forEach(function (enemy) {
+                if (!enemy.clean) {
+                    enemy.update();
+                    if (enemy.health <= 0)
+                        enemy.clean = true;
+                    ;
+                }
+            });
+            this.cleanEnemies();
             this.planets.forEach(function (planet) {
                 planet.update();
             });
@@ -385,12 +401,22 @@ var GameRooms;
             this.planets.forEach(function (planet) {
                 planet.render();
             });
-            this.player.render();
-            Game.game.debug.text(this.player.sprite.x + " " + this.player.sprite.y, 100, 150);
-        };
-        MainRoom.prototype.updateEnemies = function () {
             this.enemies.forEach(function (enemy) {
-                enemy.update();
+                enemy.render();
+            });
+            this.player.render();
+            Game.game.debug.text(Game.game.time.fps, 50, 50);
+        };
+        MainRoom.prototype.cleanEnemies = function () {
+            var enemies = this.enemies;
+            this.enemies.forEach(function (enemy) {
+                if (enemy.clean) {
+                    enemy.killProcesses();
+                    enemy.sprite.destroy();
+                    var index = enemies.indexOf(enemy);
+                    delete enemies[index];
+                    enemies.splice(index, 1);
+                }
             });
         };
         return MainRoom;
@@ -401,13 +427,14 @@ var GameRooms;
 (function (GameRooms) {
     var GameOver = (function (_super) {
         __extends(GameOver, _super);
-        function GameOver() {
+        function GameOver(hasWon) {
             var _this = _super.call(this) || this;
             _this.PANEL_WIDTH = 200;
             _this.PANEL_HEIGHT = 140;
             return _this;
         }
-        GameOver.prototype.init = function () {
+        GameOver.prototype.init = function (hasWon) {
+            this.hasWon = hasWon;
             this.game.add.sprite(0, 0, "game-over");
         };
         GameOver.prototype.preload = function () {
@@ -422,12 +449,18 @@ var GameRooms;
             tryAgainButton = new SlickUI.Element.Button(10, 10, 170, 50);
             this.panel.add(tryAgainButton);
             tryAgainButton.events.onInputUp.add(this.tryAgain);
-            tryAgainButton.add(new SlickUI.Element.Text(0, 0, "Try Again")).center();
+            tryAgainButton.add(new SlickUI.Element.Text(0, 0, "Play Again")).center();
             var mainMenuButton;
             mainMenuButton = new SlickUI.Element.Button(10, 70, 170, 50);
             this.panel.add(mainMenuButton);
             mainMenuButton.events.onInputUp.add(this.mainMenu);
             mainMenuButton.add(new SlickUI.Element.Text(0, 0, "Main Menu")).center();
+        };
+        GameOver.prototype.render = function () {
+            if (this.hasWon)
+                Game.game.debug.text("You won! You've captured all the planets.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#11ff22");
+            else
+                Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
         };
         GameOver.prototype.tryAgain = function () {
             Game.game.state.start("main-room");
@@ -483,11 +516,13 @@ var GameObjects;
             this.getVelocity();
             // Create a sprite for checking collisions
             this.sprite = Game.game.add.sprite(this.p1.x, this.p1.y);
-            this.sprite.width = this.sprite.height = 5;
+            this.sprite.width = this.sprite.height = 16;
             this.sprite.anchor.setTo(0.5, 0.5);
             Game.game.physics.arcade.enable(this.sprite);
             this.sprite.visible = false;
             var distance = Phaser.Math.distance(this.sprite.x, this.sprite.y, this.p2.x, this.p2.y);
+            if (distance > 500)
+                return false;
             while (distance > 16) {
                 if (Game.game.physics.arcade.collide(this.sprite, this.wallSprite))
                     return false;
@@ -522,6 +557,10 @@ var GameObjects;
             this.sprite.anchor.setTo(0.5, 0.5);
             Game.game.physics.arcade.enable(this.sprite);
             this.speed = 100;
+            this.health = 100;
+            this.progressBar = new GameObjects.ProgressBar(this.sprite.x - 25, this.sprite.y - 25, 50, 10, this.health);
+            this.progressBar.setColors("#dd5555", "#ff1111");
+            this.progressBar.fixedCamera = false;
             this.bullets = new Array();
             this.bulletSpeed = 1000;
             this.numOfBullets = this.maxBullets = 1;
@@ -529,12 +568,13 @@ var GameObjects;
             this.patrolPoints = new Array();
             this.currentPatrol = 0;
             this.resetPath();
-            Game.game.time.events.loop(Phaser.Timer.SECOND / 1, this.followPlayer, this);
-            Game.game.time.events.loop(Phaser.Timer.SECOND / 3, this.giveBullet, this);
+            this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
+            this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.giveBullet, this);
         }
         Enemy.prototype.update = function () {
             this.cleanBulletsArray();
             this.followPath();
+            Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer);
             var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
             if (this.canSeePlayer()) {
                 this.latestPlayerCoords = playerCoords;
@@ -550,6 +590,7 @@ var GameObjects;
                 }
             }
             this.updateBullets();
+            this.cleanBulletsArray();
         };
         Enemy.prototype.reached_target_position = function (target_position) {
             var distance;
@@ -572,7 +613,7 @@ var GameObjects;
             this.path = [];
             this.path_step = -1;
             this.Stop();
-            Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
+            this.patrolEvent = Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
         };
         Enemy.prototype.followPath = function () {
             var next_position, velocity;
@@ -639,28 +680,43 @@ var GameObjects;
             this.patrolPoints.push(point);
         };
         Enemy.prototype.cleanBulletsArray = function () {
-            var toBeDeleted = new Array();
             var bullets = this.bullets;
             this.bullets.forEach(function (bullet) {
-                if (bullet.clean)
-                    toBeDeleted.push(bullets.indexOf(bullet));
-            });
-            toBeDeleted.forEach(function (index) {
-                bullets[index].sprite.destroy();
-                delete bullets[index];
+                if (bullet.clean) {
+                    bullet.sprite.destroy();
+                    var index = bullets.indexOf(bullet);
+                    delete bullets[index];
+                    bullets.splice(index, 1);
+                }
             });
         };
         Enemy.prototype.updateBullets = function () {
             this.bullets.forEach(function (bullet) {
-                if (bullet != undefined && !bullet.clean) {
+                if (bullet.sprite.body != null) {
                     bullet.update();
                     var bullet = bullet;
-                    Game.game.physics.arcade.collide(bullet.sprite, Global.player.sprite, null, function () {
+                    Game.game.physics.arcade.overlap(bullet.sprite, Global.player.sprite, null, function () {
                         bullet.clean = true;
-                        Global.player.health--;
+                        Global.player.health = Global.player.health - 3;
                     }, this);
                 }
             });
+        };
+        Enemy.prototype.render = function () {
+            this.renderHealth();
+        };
+        Enemy.prototype.renderHealth = function () {
+            this.progressBar.x = this.sprite.x - 30;
+            this.progressBar.y = this.sprite.y - 30;
+            this.progressBar.width = 60;
+            this.progressBar.height = 10;
+            this.progressBar.percent = this.health;
+            this.progressBar.draw();
+        };
+        Enemy.prototype.killProcesses = function () {
+            Game.game.time.events.remove(this.patrolEvent);
+            Game.game.time.events.remove(this.giveBulletLoop);
+            Game.game.time.events.remove(this.followPlayerLoop);
         };
         return Enemy;
     }());

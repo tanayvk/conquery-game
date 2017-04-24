@@ -66,12 +66,16 @@ module GameObjects {
 			}
 
 			this.bullets.forEach(function(bullet) {
-				if(bullet != undefined && !bullet.clean) {
+				if(bullet.sprite.body != null) {
+					var bul = bullet;
 					bullet.update();
 
-					Game.game.physics.arcade.overlap(bullet.sprite, planet.getEnemiesArray(), null, function() {
-						bullet.clean = true;
-					}, this);
+					Global.enemies.forEach(function(enemy) {
+						if(Game.game.physics.arcade.overlap(enemy.sprite, bul.sprite)) {
+							bul.clean = true;
+							enemy.health = enemy.health - 5;
+						}
+					});
 				}
 			});
 
@@ -125,16 +129,15 @@ module GameObjects {
 		}
 
 		cleanBulletsArray() {
-			var toBeDeleted = new Array<number>();
 			var bullets = this.bullets;
 			this.bullets.forEach(function(bullet) {
 				if(bullet.clean)
-					toBeDeleted.push(bullets.indexOf(bullet));
-			});
-
-			toBeDeleted.forEach(function(index) {
-				bullets[index].sprite.destroy();
-				delete bullets[index];
+				{
+					bullet.sprite.destroy();
+					var index = bullets.indexOf(bullet);
+					delete bullets[index];
+					bullets.splice(index, 1);
+				}
 			});
 		}
 	}

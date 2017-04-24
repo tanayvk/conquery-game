@@ -23,13 +23,17 @@ module GameObjects {
 
 			// Create a sprite for checking collisions
 			this.sprite = Game.game.add.sprite(this.p1.x, this.p1.y);
-			this.sprite.width = this.sprite.height = 5;
+			this.sprite.width = this.sprite.height = 16;
 			this.sprite.anchor.setTo(0.5, 0.5);
 
 			Game.game.physics.arcade.enable(this.sprite);
 			this.sprite.visible = false;
 
 			var distance = Phaser.Math.distance(this.sprite.x, this.sprite.y, this.p2.x, this.p2.y);
+
+			if(distance > 500)
+				return false;
+
 			while(distance > 16) {
 				if(Game.game.physics.arcade.collide(this.sprite, this.wallSprite))
 					return false;

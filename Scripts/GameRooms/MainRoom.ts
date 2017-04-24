@@ -49,7 +49,15 @@ module GameRooms {
 			Game.game.physics.arcade.collide(this.player.sprite, this.blockedLayer);
 
 			this.player.update();
-			this.updateEnemies();
+
+			this.enemies.forEach(function (enemy) {
+				if(!enemy.clean) {
+					enemy.update();
+					if(enemy.health <= 0)
+						enemy.clean = true;;
+				}
+			});
+			this.cleanEnemies();
 
 			this.planets.forEach(function(planet) {
 				planet.update();
@@ -89,16 +97,26 @@ module GameRooms {
 			this.planets.forEach(function(planet) {
 				planet.render();
 			});
+			this.enemies.forEach(function(enemy) {
+				enemy.render();
+			});
 
 			this.player.render();
-			Game.game.debug.text(this.player.sprite.x + " " + this.player.sprite.y, 100, 150);
+			Game.game.debug.text(Game.game.time.fps, 50, 50);
 		}
 
-		updateEnemies() {
-			this.enemies.forEach(function (enemy) {
-				enemy.update();
+		cleanEnemies() {
+			var enemies = this.enemies;
+			this.enemies.forEach(function(enemy) {
+				if(enemy.clean)
+				{
+					enemy.killProcesses();
+					enemy.sprite.destroy();
+					var index = enemies.indexOf(enemy);
+					delete enemies[index];
+					enemies.splice(index, 1);
+				}
 			});
 		}
-
 	}
 }

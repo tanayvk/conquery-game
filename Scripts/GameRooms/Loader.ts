@@ -8,13 +8,12 @@ module GameRooms {
 		}
 
 		init() {
-			var loaderBar = this.game.add.sprite(this.game.world.centerX, this.game.world.centerY + 256, "loaderBar");
-			loaderBar.anchor.setTo(0.5, 0.5);
-
-			this.game.load.setPreloadSprite(loaderBar);
 		}
 
 		preload() {
+			var loaderBar = this.game.add.sprite(this.game.world.centerX - 128, this.game.world.centerY + 256, "loaderBar");
+			this.game.load.setPreloadSprite(loaderBar);
+
 			Game.ui = this.game.plugins.add(Phaser.Plugin.SlickUI);
 
 			this.game.load.tilemap("level2", "Assets/Tilemaps/level2.json", null, Phaser.Tilemap.TILED_JSON);

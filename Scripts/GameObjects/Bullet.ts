@@ -6,7 +6,7 @@ module GameObjects {
 		velocity: Phaser.Point;
 		angle: number;
 		clean: boolean;
-		
+
 		constructor(x, y, speed) {
 			this.speed = speed;
 
@@ -22,9 +22,8 @@ module GameObjects {
 		update() {
 			this.sprite.angle = (180 / Math.PI) * Math.atan2(this.sprite.body.velocity.y, this.sprite.body.velocity.x);
 
-			Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer, function() {
+			if(Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer))
 				this.clean = true;
-			}, null, this);
 		}
 
 		towards(x, y) {

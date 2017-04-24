@@ -25,12 +25,26 @@ module GameObjects {
 		currentPatrol: number;
 		isPatrolling: boolean;
 
+		health: number;
+		progressBar;
+
+		clean;
+
+		followPlayerLoop;
+		giveBulletLoop;
+		patrolEvent;
+
 		constructor(x, y, pathfinder) {
 			this.sprite = Game.game.add.sprite(x, y, "enemy");
 			this.sprite.anchor.setTo(0.5, 0.5);
 			Game.game.physics.arcade.enable(this.sprite);
 
 			this.speed = 100;
+
+			this.health = 100;
+			this.progressBar = new GameObjects.ProgressBar(this.sprite.x - 25, this.sprite.y - 25, 50, 10, this.health);
+			this.progressBar.setColors("#dd5555", "#ff1111");
+			this.progressBar.fixedCamera = false;
 
 			this.bullets = new Array<GameObjects.Bullet>();
 			this.bulletSpeed = 1000;
@@ -41,13 +55,15 @@ module GameObjects {
 			this.currentPatrol = 0;
 			this.resetPath();
 
-			Game.game.time.events.loop(Phaser.Timer.SECOND / 1, this.followPlayer, this);
-			Game.game.time.events.loop(Phaser.Timer.SECOND / 3, this.giveBullet, this);
+			this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
+			this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 2, this.giveBullet, this);
 		}
 
 		update() {
 			this.cleanBulletsArray();
 			this.followPath();
+
+			Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer);
 
 			var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
 			if(this.canSeePlayer()) {
@@ -64,6 +80,7 @@ module GameObjects {
 				}
 			}
 			this.updateBullets();
+			this.cleanBulletsArray();
 		}
 
 		reached_target_position(target_position) {
@@ -90,7 +107,7 @@ module GameObjects {
 			this.path_step = -1;
 
 			this.Stop();
-			Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
+			this.patrolEvent = Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
 		}
 
 		followPath() {
@@ -170,31 +187,50 @@ module GameObjects {
 		}
 
 		cleanBulletsArray() {
-			var toBeDeleted = new Array<number>();
 			var bullets = this.bullets;
 			this.bullets.forEach(function(bullet) {
 				if(bullet.clean)
-					toBeDeleted.push(bullets.indexOf(bullet));
-			});
-
-			toBeDeleted.forEach(function(index) {
-				bullets[index].sprite.destroy();
-				delete bullets[index];
+				{
+					bullet.sprite.destroy();
+					var index = bullets.indexOf(bullet);
+					delete bullets[index];
+					bullets.splice(index, 1);
+				}
 			});
 		}
 
 		updateBullets() {
 			this.bullets.forEach(function(bullet) {
-				if(bullet != undefined && !bullet.clean) {
+				if(bullet.sprite.body != null) {
 					bullet.update();
 
 					var bullet = bullet;
-					Game.game.physics.arcade.collide(bullet.sprite, Global.player.sprite, null, function() {
+					Game.game.physics.arcade.overlap(bullet.sprite, Global.player.sprite, null, function() {
 						bullet.clean = true;
-						Global.player.health--;
+						Global.player.health = Global.player.health - 3;
 					}, this);
 				}
 			});
+		}
+
+		render() {
+			this.renderHealth();
+		}
+
+		renderHealth() {
+			this.progressBar.x = this.sprite.x - 30;
+			this.progressBar.y = this.sprite.y - 30;
+			this.progressBar.width = 60;
+			this.progressBar.height = 10;
+
+			this.progressBar.percent = this.health;
+			this.progressBar.draw();
+		}
+
+		killProcesses() {
+			Game.game.time.events.remove(this.patrolEvent);
+			Game.game.time.events.remove(this.giveBulletLoop);
+			Game.game.time.events.remove(this.followPlayerLoop);
 		}
 	}
 }

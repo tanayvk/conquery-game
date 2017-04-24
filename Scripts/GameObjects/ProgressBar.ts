@@ -16,6 +16,8 @@ module GameObjects {
 		backRect;
 		frontRect;
 
+		fixedCamera: boolean;
+
 		constructor(x, y, width, height, percent) {
 			this.x = x;
 			this.y = y;
@@ -29,6 +31,8 @@ module GameObjects {
 			this.backgroundColor = "#ffffff";
 			this.foregroundColor = "#ffff00";
 			this.textColor = "#ffffff";
+
+			this.fixedCamera = true;
 		}
 
 		setColors(backgroundColor, foregroundColor, textColor) {
@@ -46,12 +50,17 @@ module GameObjects {
 		}
 
 		draw() {
-			var cameraX = Game.game.camera.x;
-			var cameraY = Game.game.camera.y;
+			if(this.fixedCamera) {
+				var cameraX = Game.game.camera.x;
+				var cameraY = Game.game.camera.y;
 
-			this.backRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.width, this.height);
-			this.frontRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.getWidth(), this.height);
-
+				this.backRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.width, this.height);
+				this.frontRect = new Phaser.Rectangle(cameraX + this.x, cameraY + this.y, this.getWidth(), this.height);
+			}
+			else {
+				this.backRect = new Phaser.Rectangle(this.x, this.y, this.width, this.height);
+				this.frontRect = new Phaser.Rectangle(this.x, this.y, this.getWidth(), this.height);
+			}
 			Game.game.debug.geom(this.backRect, this.backgroundColor);
 			Game.game.debug.geom(this.frontRect, this.foregroundColor);
 

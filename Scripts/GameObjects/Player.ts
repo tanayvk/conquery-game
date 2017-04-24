@@ -49,7 +49,7 @@ module GameObjects {
 				this.Stop();
 			}
 
-			if(this.health == 0) {
+			if(this.health <= 0) {
 				this.gameOver();
 			}
 		}
@@ -64,7 +64,7 @@ module GameObjects {
 		}
 
 		gameOver() {
-			Game.game.state.start("game-over");
+			Game.game.state.start("game-over", true, false, false);
 		}
 	}
 }
