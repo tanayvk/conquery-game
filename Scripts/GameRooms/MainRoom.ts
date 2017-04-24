@@ -21,9 +21,8 @@ module GameRooms {
 		}
 
 		create() {
-			Game.game.map = this.game.add.tilemap('level2');
-			Game.game.map.addTilesetImage('player', 'player');
-			Game.game.map.addTilesetImage('enemy', 'wall');
+			Game.game.map = this.game.add.tilemap('level');
+			Game.game.map.addTilesetImage('wall', 'wall');
 
 			this.backgroundLayer = Game.game.map.createLayer('backgroundLayer');
 			this.backgroundLayer.resizeWorld();
@@ -65,30 +64,47 @@ module GameRooms {
 		}
 
 		createPlanets() {
-			var planet = new GameObjects.Planet(725, 700);
+			var planet = new GameObjects.Planet(41*32, 70*32);
 			this.planets.push(planet);
-
-			planet = new GameObjects.Planet(900, 1000);
+			planet = new GameObjects.Planet(37*32, 37*32);
+			this.planets.push(planet);
+			planet = new GameObjects.Planet(13*32, 68*32);
+			this.planets.push(planet);
+			planet = new GameObjects.Planet(65*32, 67*32);
+			this.planets.push(planet);
+			planet = new GameObjects.Planet(37*32, 6*32);
 			this.planets.push(planet);
 		}
 
 		createEnemies() {
-			var enemy = new GameObjects.Enemy(160, 192, this.pathfinder);
-			enemy.addPatrolPoint(new Phaser.Point(160, 192));
-			enemy.addPatrolPoint(new Phaser.Point(250, 1200));
-
+			var enemy = new GameObjects.Enemy(14*32, 56*32, this.pathfinder);
+			enemy.addPatrolPoint(new Phaser.Point(14*32, 56*32));
+			enemy.addPatrolPoint(new Phaser.Point(21*32, 59*32));
 			this.enemies.push(enemy);
-
-			var enemy = new GameObjects.Enemy(250, 1200, this.pathfinder);
-			enemy.addPatrolPoint(new Phaser.Point(250, 1200));
-			enemy.addPatrolPoint(new Phaser.Point(160, 192));
-
+			var enemy = new GameObjects.Enemy(65*32, 67*32, this.pathfinder);
+			enemy.addPatrolPoint(new Phaser.Point(65*32, 67*32));
+			enemy.addPatrolPoint(new Phaser.Point(60*32, 63*32));
 			this.enemies.push(enemy);
-
+			var enemy = new GameObjects.Enemy(23*32, 33*32, this.pathfinder);
+			enemy.addPatrolPoint(new Phaser.Point(23*32, 33*32));
+			enemy.addPatrolPoint(new Phaser.Point(15*32, 39*32));
+			this.enemies.push(enemy);
+			var enemy = new GameObjects.Enemy(53*32, 32*32, this.pathfinder);
+			enemy.addPatrolPoint(new Phaser.Point(53*32, 32*32));
+			enemy.addPatrolPoint(new Phaser.Point(62*32, 34*32));
+			this.enemies.push(enemy);
+			var enemy = new GameObjects.Enemy(28*32, 2*32, this.pathfinder);
+			enemy.addPatrolPoint(new Phaser.Point(28*32, 2*32));
+			enemy.addPatrolPoint(new Phaser.Point(41*32, 15*32));
+			this.enemies.push(enemy);
+			var enemy = new GameObjects.Enemy(48*32, 2*32, this.pathfinder);
+			enemy.addPatrolPoint(new Phaser.Point(48*32, 2*32));
+			enemy.addPatrolPoint(new Phaser.Point(31*32, 15*32));
+			this.enemies.push(enemy);
 		}
 
 		createPlayer() {
-			this.player = new GameObjects.Player(1000, 1000);
+			this.player = new GameObjects.Player(36*32, 71*32);
 			Global.player = this.player;
 			Game.game.camera.follow(this.player.sprite);
 		}
@@ -102,7 +118,9 @@ module GameRooms {
 			});
 
 			this.player.render();
+
 			Game.game.debug.text(Game.game.time.fps, 50, 50);
+			Game.game.debug.text(this.guideText, Game.game.width)
 		}
 
 		cleanEnemies() {

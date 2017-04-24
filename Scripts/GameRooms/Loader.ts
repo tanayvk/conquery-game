@@ -16,7 +16,7 @@ module GameRooms {
 
 			Game.ui = this.game.plugins.add(Phaser.Plugin.SlickUI);
 
-			this.game.load.tilemap("level2", "Assets/Tilemaps/level2.json", null, Phaser.Tilemap.TILED_JSON);
+			this.game.load.tilemap("level", "Assets/Tilemaps/level.json", null, Phaser.Tilemap.TILED_JSON);
 
 			this.game.load.image("player", "Assets/Images/player.png");
 			this.game.load.image("enemy", "Assets/Images/enemy.png");
