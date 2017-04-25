@@ -70,7 +70,7 @@ var GameObjects;
             this.sprite = Game.game.add.sprite(x, y, "bullet");
             Game.game.physics.arcade.enable(this.sprite);
             this.sprite.anchor.setTo(0.5, 0.5);
-            Game.game.time.events.add(Phaser.Timer.SECOND * 3, this.sprite.destroy, this.sprite);
+            Game.game.time.events.add(Phaser.Timer.SECOND * 0.5, this.kill, this);
         }
         Bullet.prototype.update = function () {
             this.sprite.angle = (180 / Math.PI) * Math.atan2(this.sprite.body.velocity.y, this.sprite.body.velocity.x);
@@ -82,6 +82,12 @@ var GameObjects;
             var deltaY = y - this.sprite.y;
             var velocity = new Phaser.Point(deltaX, deltaY).normalize().multiply(this.speed, this.speed);
             this.sprite.body.velocity.setTo(velocity.x, velocity.y);
+        };
+        Bullet.prototype.kill = function () {
+            if (this.sprite != undefined) {
+                this.sprite.destroy();
+                delete this.sprite;
+            }
         };
         return Bullet;
     }());
@@ -117,6 +123,7 @@ var Global;
     Global.blockedLayer = null;
     Global.player = null;
     Global.enemies = null;
+    Global.debug = false;
 })(Global || (Global = {}));
 /// <reference path="../Global.ts" />
 var GameRooms;
@@ -177,12 +184,12 @@ var GameObjects;
                     this.loadTimer.resume();
                 this.progressBar.text = "Capturing...";
             }
-            else {
+            else if (!this.isActivated) {
                 this.progressBar.text = "Hold space to capture planet.";
                 this.loadTimer.pause();
             }
-            var planet = this;
             if (this.isActivated) {
+                var planet = this;
                 Global.enemies.forEach(function (enemy) {
                     if (planet.canSeeEnemy(enemy) && planet.numOfBullets > 0) {
                         planet.Shoot(enemy);
@@ -190,22 +197,22 @@ var GameObjects;
                     }
                 });
             }
-            this.bullets.forEach(function (bullet) {
-                if (bullet.sprite.body != null) {
-                    var bul = bullet;
-                    bullet.update();
-                    Global.enemies.forEach(function (enemy) {
-                        if (Game.game.physics.arcade.overlap(enemy.sprite, bul.sprite)) {
-                            bul.clean = true;
-                            enemy.health = enemy.health - 5;
-                        }
-                    });
-                }
-            });
             this.cleanBulletsArray();
+            this.bullets.forEach(function (bullet) {
+                // if(bullet.sprite.body != null) {
+                var bul = bullet;
+                bullet.update();
+                Global.enemies.forEach(function (enemy) {
+                    if (Game.game.physics.arcade.overlap(enemy.sprite, bul.sprite)) {
+                        bul.clean = true;
+                        enemy.health = enemy.health - 5;
+                    }
+                });
+                // }
+            });
         };
         Planet.prototype.render = function () {
-            if (Game.game.physics.arcade.overlap(this.sprite, Global.player.sprite) && !this.isActivated) {
+            if (!this.isActivated && Game.game.physics.arcade.overlap(this.sprite, Global.player.sprite)) {
                 this.progressBar.percent = (this.loadTimer.seconds / this.loadTime) * 100;
                 this.progressBar.draw();
             }
@@ -213,6 +220,8 @@ var GameObjects;
         Planet.prototype.activatePlanet = function () {
             this.isActivated = true;
             this.loadTimer.destroy();
+            delete this.loadTimer;
+            delete this.progressBar;
             this.sprite.loadTexture('planet_activated');
         };
         Planet.prototype.canSeeEnemy = function (enemy) {
@@ -242,14 +251,17 @@ var GameObjects;
         };
         Planet.prototype.cleanBulletsArray = function () {
             var bullets = this.bullets;
+            var newBullets = new Array();
             this.bullets.forEach(function (bullet) {
-                if (bullet.clean) {
+                if (bullet.clean && bullet.sprite != undefined) {
                     bullet.sprite.destroy();
-                    var index = bullets.indexOf(bullet);
-                    delete bullets[index];
-                    bullets.splice(index, 1);
+                }
+                else if (bullet.sprite != undefined) {
+                    newBullets.push(bullet);
                 }
             });
+            delete this.bullets;
+            this.bullets = newBullets;
         };
         return Planet;
     }());
@@ -349,7 +361,7 @@ var GameRooms;
             this.backgroundLayer.resizeWorld();
             this.blockedLayer = Game.game.map.createLayer('collisions');
             Game.game.physics.arcade.enable(this.blockedLayer);
-            Game.game.map.setCollisionBetween(1, 10000, true, this.blockedLayer);
+            Game.game.map.setCollisionBetween(1, 75 * 75, true, this.blockedLayer);
             Global.blockedLayer = this.blockedLayer;
             var tile_dimensions = new Phaser.Point(Game.game.map.tileWidth, Game.game.map.tileHeight);
             this.pathfinder = Game.game.plugins.add(Pathfinding, Game.game.map.layers[1].data, [-1], tile_dimensions);
@@ -387,7 +399,7 @@ var GameRooms;
             this.planets.push(planet);
             planet = new GameObjects.Planet(65 * 32, 67 * 32);
             this.planets.push(planet);
-            planet = new GameObjects.Planet(37 * 32, 6 * 32);
+            var planet = new GameObjects.Planet(37 * 32, 6 * 32);
             this.planets.push(planet);
         };
         MainRoom.prototype.createEnemies = function () {
@@ -414,7 +426,7 @@ var GameRooms;
             var enemy = new GameObjects.Enemy(48 * 32, 2 * 32, this.pathfinder);
             enemy.addPatrolPoint(new Phaser.Point(48 * 32, 2 * 32));
             enemy.addPatrolPoint(new Phaser.Point(31 * 32, 15 * 32));
-            this.enemies.push(enemy);
+            // this.enemies.push(enemy);
         };
         MainRoom.prototype.createPlayer = function () {
             this.player = new GameObjects.Player(36 * 32, 71 * 32);
@@ -540,41 +552,29 @@ window.onload = function () {
 var GameObjects;
 (function (GameObjects) {
     var Photon = (function () {
-        function Photon(p1, p2, wallSprite) {
+        function Photon(p1, p2, collisionLayer) {
             this.p1 = p1;
             this.p2 = p2;
-            this.velocity = new Phaser.Point(0, 0);
-            this.wallSprite = wallSprite;
+            this.collisionLayer = collisionLayer;
         }
         Photon.prototype.calculate = function () {
-            this.getVelocity();
-            // Create a sprite for checking collisions
-            this.sprite = Game.game.add.sprite(this.p1.x, this.p1.y);
-            this.sprite.width = this.sprite.height = 16;
-            this.sprite.anchor.setTo(0.5, 0.5);
-            Game.game.physics.arcade.enable(this.sprite);
-            this.sprite.visible = false;
-            var distance = Phaser.Math.distance(this.sprite.x, this.sprite.y, this.p2.x, this.p2.y);
-            if (distance > 500)
+            this.line = new Phaser.Line();
+            this.line.start.set(this.p1.x, this.p1.y);
+            this.line.end.set(this.p2.x, this.p2.y);
+            // if(this.line.width > 750)
+            // 	return false;
+            var tileHits = this.collisionLayer.getRayCastTiles(this.line, 8, true, true);
+            if (tileHits.length > 0) {
+                if (Global.debug == true)
+                    for (var i = 0; i < tileHits.length; i++) {
+                        tileHits[i].destroy();
+                    }
                 return false;
-            while (distance > 16) {
-                if (Game.game.physics.arcade.collide(this.sprite, this.wallSprite))
-                    return false;
-                this.sprite.body.x = this.sprite.x += this.velocity.x;
-                this.sprite.body.y = this.sprite.y += this.velocity.y;
-                distance = Phaser.Math.distance(this.sprite.x, this.sprite.y, this.p2.x, this.p2.y);
-                //console.log(distance);
             }
-            this.sprite.destroy();
             return true;
         };
         Photon.prototype.isFree = function () {
             return this.calculate();
-        };
-        Photon.prototype.getVelocity = function () {
-            this.velocity.x = this.p2.x - this.p1.x;
-            this.velocity.y = this.p2.y - this.p1.y;
-            this.velocity.normalize();
         };
         return Photon;
     }());
@@ -606,7 +606,6 @@ var GameObjects;
             this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 4, this.giveBullet, this);
         }
         Enemy.prototype.update = function () {
-            this.cleanBulletsArray();
             this.followPath();
             Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer);
             var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
@@ -623,8 +622,8 @@ var GameObjects;
                     this.numOfBullets--;
                 }
             }
-            this.updateBullets();
             this.cleanBulletsArray();
+            this.updateBullets();
         };
         Enemy.prototype.reached_target_position = function (target_position) {
             var distance;
@@ -647,6 +646,10 @@ var GameObjects;
             this.path = [];
             this.path_step = -1;
             this.Stop();
+            if (this.patrolEvent != undefined) {
+                Game.game.time.events.remove(this.patrolEvent);
+                delete this.patrolEvent;
+            }
             this.patrolEvent = Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
         };
         Enemy.prototype.followPath = function () {
@@ -673,7 +676,7 @@ var GameObjects;
         };
         Enemy.prototype.shootBullet = function () {
             var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
-            bullet.towards(this.latestPlayerCoords.x, this.latestPlayerCoords.y);
+            bullet.towards(Global.player.sprite.x, Global.player.sprite.y);
             this.bullets.push(bullet);
         };
         Enemy.prototype.Stop = function () {
@@ -691,7 +694,7 @@ var GameObjects;
             }
             if ((this.latestPlayerCoords != this.oldPlayerCoords)) {
                 this.oldPlayerCoords = this.latestPlayerCoords;
-                //this.resetPath();
+                this.resetPath();
                 this.MoveTo(this.latestPlayerCoords);
             }
         };
@@ -715,24 +718,27 @@ var GameObjects;
         };
         Enemy.prototype.cleanBulletsArray = function () {
             var bullets = this.bullets;
+            var newBullets = new Array();
             this.bullets.forEach(function (bullet) {
-                if (bullet.clean) {
+                if (bullet.clean && bullet.sprite != undefined) {
                     bullet.sprite.destroy();
-                    var index = bullets.indexOf(bullet);
-                    delete bullets[index];
-                    bullets.splice(index, 1);
+                    delete bullet.sprite;
+                }
+                else if (bullet.sprite != undefined) {
+                    newBullets.push(bullet);
                 }
             });
+            delete this.bullets;
+            this.bullets = newBullets;
         };
         Enemy.prototype.updateBullets = function () {
             this.bullets.forEach(function (bullet) {
-                if (bullet.sprite.body != null) {
+                if (bullet.sprite != undefined) {
                     bullet.update();
-                    var bullet = bullet;
                     Game.game.physics.arcade.overlap(bullet.sprite, Global.player.sprite, null, function () {
-                        bullet.clean = true;
+                        this.clean = true;
                         Global.player.health = Global.player.health - 5;
-                    }, this);
+                    }, bullet);
                 }
             });
         };
@@ -751,6 +757,7 @@ var GameObjects;
             Game.game.time.events.remove(this.patrolEvent);
             Game.game.time.events.remove(this.giveBulletLoop);
             Game.game.time.events.remove(this.followPlayerLoop);
+            delete this.progressBar;
         };
         return Enemy;
     }());

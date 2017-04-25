@@ -27,7 +27,6 @@ module GameObjects {
 			this.actionKey = Game.game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
 
 			this.loadTime = 3;
-
 			this.loadTimer = Game.game.time.create(false);
 			this.loadTimer.add(this.loadTime * Phaser.Timer.SECOND, this.activatePlanet, this);
 
@@ -50,13 +49,13 @@ module GameObjects {
 					this.loadTimer.resume();
 
 				this.progressBar.text = "Capturing...";
-			} else {
+			} else if(!this.isActivated) {
 				this.progressBar.text = "Hold space to capture planet.";
 				this.loadTimer.pause();
 			}
 
-			var planet = this;
 			if(this.isActivated) {
+				var planet = this;
 				Global.enemies.forEach(function(enemy) {
 					if(planet.canSeeEnemy(enemy) && planet.numOfBullets > 0) {
 						planet.Shoot(enemy);
@@ -64,9 +63,9 @@ module GameObjects {
 					}
 				});
 			}
-
+			this.cleanBulletsArray();
 			this.bullets.forEach(function(bullet) {
-				if(bullet.sprite.body != null) {
+				// if(bullet.sprite.body != null) {
 					var bul = bullet;
 					bullet.update();
 
@@ -76,14 +75,12 @@ module GameObjects {
 							enemy.health = enemy.health - 5;
 						}
 					});
-				}
+				// }
 			});
-
-			this.cleanBulletsArray();
 		}
 
 		render() {
-			if (Game.game.physics.arcade.overlap(this.sprite, Global.player.sprite) && !this.isActivated) {
+			if (!this.isActivated && Game.game.physics.arcade.overlap(this.sprite, Global.player.sprite)) {
 				this.progressBar.percent = (this.loadTimer.seconds / this.loadTime) * 100;
 				this.progressBar.draw();
 			}
@@ -92,6 +89,9 @@ module GameObjects {
 		activatePlanet() {
 			this.isActivated = true;
 			this.loadTimer.destroy();
+			delete this.loadTimer;
+
+			delete this.progressBar;
 
 			this.sprite.loadTexture('planet_activated');
 		}
@@ -130,15 +130,18 @@ module GameObjects {
 
 		cleanBulletsArray() {
 			var bullets = this.bullets;
+			var newBullets = new Array<GameObjects.Bullet>();
 			this.bullets.forEach(function(bullet) {
-				if(bullet.clean)
+				if(bullet.clean && bullet.sprite != undefined)
 				{
 					bullet.sprite.destroy();
-					var index = bullets.indexOf(bullet);
-					delete bullets[index];
-					bullets.splice(index, 1);
+				} else if(bullet.sprite != undefined) {
+					newBullets.push(bullet);
 				}
 			});
+
+			delete this.bullets;
+			this.bullets = newBullets;
 		}
 	}
 }

@@ -29,7 +29,7 @@ module GameRooms {
 
     		this.blockedLayer = Game.game.map.createLayer('collisions');
 			Game.game.physics.arcade.enable(this.blockedLayer);
-			Game.game.map.setCollisionBetween(1, 10000, true, this.blockedLayer);
+			Game.game.map.setCollisionBetween(1, 75*75, true, this.blockedLayer);
 			Global.blockedLayer = this.blockedLayer;
 
 			var tile_dimensions = new Phaser.Point(Game.game.map.tileWidth, Game.game.map.tileHeight);
@@ -76,7 +76,7 @@ module GameRooms {
 			this.planets.push(planet);
 			planet = new GameObjects.Planet(65*32, 67*32);
 			this.planets.push(planet);
-			planet = new GameObjects.Planet(37*32, 6*32);
+			var planet = new GameObjects.Planet(37*32, 6*32);
 			this.planets.push(planet);
 		}
 
@@ -104,7 +104,7 @@ module GameRooms {
 			var enemy = new GameObjects.Enemy(48*32, 2*32, this.pathfinder);
 			enemy.addPatrolPoint(new Phaser.Point(48*32, 2*32));
 			enemy.addPatrolPoint(new Phaser.Point(31*32, 15*32));
-			this.enemies.push(enemy);
+			// this.enemies.push(enemy);
 		}
 
 		createPlayer() {

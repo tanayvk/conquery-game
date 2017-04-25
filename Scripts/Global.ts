@@ -6,4 +6,5 @@ module Global {
 	export var blockedLayer = null;
 	export var player = null;
 	export var enemies = null;
+	export var debug = false;
 }

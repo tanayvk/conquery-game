@@ -15,7 +15,7 @@ module GameObjects {
 
 			this.sprite.anchor.setTo(0.5, 0.5);
 
-			Game.game.time.events.add(Phaser.Timer.SECOND * 3, this.sprite.destroy, this.sprite);
+			Game.game.time.events.add(Phaser.Timer.SECOND * 0.5, this.kill, this);
 		}
 
 
@@ -32,6 +32,13 @@ module GameObjects {
 
 			var velocity = new Phaser.Point(deltaX, deltaY).normalize().multiply(this.speed, this.speed);
 			this.sprite.body.velocity.setTo(velocity.x, velocity.y);
+		}
+
+		kill() {
+			if(this.sprite != undefined) {
+				this.sprite.destroy();
+				delete this.sprite;
+			}
 		}
 	}
 }

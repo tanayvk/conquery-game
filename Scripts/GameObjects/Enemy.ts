@@ -60,9 +60,7 @@ module GameObjects {
 		}
 
 		update() {
-			this.cleanBulletsArray();
 			this.followPath();
-
 			Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer);
 
 			var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
@@ -79,8 +77,8 @@ module GameObjects {
 					this.numOfBullets--;
 				}
 			}
-			this.updateBullets();
 			this.cleanBulletsArray();
+			this.updateBullets();
 		}
 
 		reached_target_position(target_position) {
@@ -107,6 +105,10 @@ module GameObjects {
 			this.path_step = -1;
 
 			this.Stop();
+			if(this.patrolEvent != undefined) {
+				Game.game.time.events.remove(this.patrolEvent);
+				delete this.patrolEvent;
+			}
 			this.patrolEvent = Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
 		}
 
@@ -136,7 +138,7 @@ module GameObjects {
 
 		shootBullet() {
 			var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
-			bullet.towards(this.latestPlayerCoords.x, this.latestPlayerCoords.y);
+			bullet.towards(Global.player.sprite.x, Global.player.sprite.y);
 			this.bullets.push(bullet);
 		}
 
@@ -161,7 +163,7 @@ module GameObjects {
 			if((this.latestPlayerCoords != this.oldPlayerCoords)) {
 				this.oldPlayerCoords = this.latestPlayerCoords;
 
-				//this.resetPath();
+				this.resetPath();
 				this.MoveTo(this.latestPlayerCoords);
 			}
 		}
@@ -188,27 +190,29 @@ module GameObjects {
 
 		cleanBulletsArray() {
 			var bullets = this.bullets;
+			var newBullets = new Array<GameObjects.Bullet>();
 			this.bullets.forEach(function(bullet) {
-				if(bullet.clean)
+				if(bullet.clean && bullet.sprite != undefined)
 				{
 					bullet.sprite.destroy();
-					var index = bullets.indexOf(bullet);
-					delete bullets[index];
-					bullets.splice(index, 1);
+					delete bullet.sprite;
+				} else if(bullet.sprite != undefined) {
+					newBullets.push(bullet);
 				}
 			});
+
+			delete this.bullets;
+			this.bullets = newBullets;
 		}
 
 		updateBullets() {
 			this.bullets.forEach(function(bullet) {
-				if(bullet.sprite.body != null) {
+				if(bullet.sprite != undefined) {
 					bullet.update();
-
-					var bullet = bullet;
 					Game.game.physics.arcade.overlap(bullet.sprite, Global.player.sprite, null, function() {
-						bullet.clean = true;
+						this.clean = true;
 						Global.player.health = Global.player.health - 5;
-					}, this);
+					}, bullet);
 				}
 			});
 		}
@@ -231,6 +235,8 @@ module GameObjects {
 			Game.game.time.events.remove(this.patrolEvent);
 			Game.game.time.events.remove(this.giveBulletLoop);
 			Game.game.time.events.remove(this.followPlayerLoop);
+
+			delete this.progressBar;
 		}
 	}
 }
