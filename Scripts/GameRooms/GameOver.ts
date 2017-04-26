@@ -40,13 +40,23 @@ module GameRooms {
 			this.panel.add(mainMenuButton);
 			mainMenuButton.events.onInputUp.add(this.mainMenu);
 			mainMenuButton.add(new SlickUI.Element.Text(0, 0, "Main Menu")).center();
+
+			if(this.hasWon) {
+				var style = { font: "bold 32px Arial", fill: "#1f2", boundsAlignH: "center", boundsAlignV: "middle" };
+				var text = Game.game.add.text(0, 0, "You win! You captured all the planets.", style);
+				text.setTextBounds(0, 100, Game.game.width, Game.game.height);
+			} else {
+				var style = { font: "bold 32px Arial", fill: "#f12", boundsAlignH: "center", boundsAlignV: "middle" };
+				var text = Game.game.add.text(0, 0, "You lose! You were killed by an enemy.", style);
+				text.setTextBounds(0, 100, Game.game.width, Game.game.height);
+			}
 		}
 
 		render () {
-			if(this.hasWon)
-				Game.game.debug.text("You won! You've captured all the planets.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#11ff22");
-			else
-				Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
+			// if(this.hasWon)
+			// 	Game.game.debug.text("You won! You've captured all the planets.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#11ff22");
+			// else
+			// 	Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
 		}
 
 		tryAgain() {

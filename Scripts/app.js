@@ -501,12 +501,22 @@ var GameRooms;
             this.panel.add(mainMenuButton);
             mainMenuButton.events.onInputUp.add(this.mainMenu);
             mainMenuButton.add(new SlickUI.Element.Text(0, 0, "Main Menu")).center();
+            if (this.hasWon) {
+                var style = { font: "bold 32px Arial", fill: "#1f2", boundsAlignH: "center", boundsAlignV: "middle" };
+                var text = Game.game.add.text(0, 0, "You win! You captured all the planets.", style);
+                text.setTextBounds(0, 100, Game.game.width, Game.game.height);
+            }
+            else {
+                var style = { font: "bold 32px Arial", fill: "#f12", boundsAlignH: "center", boundsAlignV: "middle" };
+                var text = Game.game.add.text(0, 0, "You lose! You were killed by an enemy.", style);
+                text.setTextBounds(0, 100, Game.game.width, Game.game.height);
+            }
         };
         GameOver.prototype.render = function () {
-            if (this.hasWon)
-                Game.game.debug.text("You won! You've captured all the planets.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#11ff22");
-            else
-                Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
+            // if(this.hasWon)
+            // 	Game.game.debug.text("You won! You've captured all the planets.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#11ff22");
+            // else
+            // 	Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
         };
         GameOver.prototype.tryAgain = function () {
             Game.game.state.start("main-room");
@@ -561,8 +571,9 @@ var GameObjects;
             this.line = new Phaser.Line();
             this.line.start.set(this.p1.x, this.p1.y);
             this.line.end.set(this.p2.x, this.p2.y);
-            // if(this.line.width > 750)
-            // 	return false;
+            this.line.width = 8;
+            if (this.line.width > 750)
+                return false;
             var tileHits = this.collisionLayer.getRayCastTiles(this.line, 8, true, true);
             if (tileHits.length > 0) {
                 if (Global.debug == true)
@@ -607,7 +618,7 @@ var GameObjects;
         }
         Enemy.prototype.update = function () {
             this.followPath();
-            Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer);
+            //Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer);
             var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
             if (this.canSeePlayer()) {
                 this.latestPlayerCoords = playerCoords;

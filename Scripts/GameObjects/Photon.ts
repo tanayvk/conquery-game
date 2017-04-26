@@ -17,9 +17,9 @@ module GameObjects {
 			this.line = new Phaser.Line();
 			this.line.start.set(this.p1.x, this.p1.y);
 			this.line.end.set(this.p2.x, this.p2.y);
-
-			// if(this.line.width > 750)
-			// 	return false;
+			this.line.width = 8;
+			if(this.line.width > 750)
+				return false;
 
 			var tileHits = this.collisionLayer.getRayCastTiles(this.line, 8, true, true);
 			if (tileHits.length > 0) {

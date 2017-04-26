@@ -61,7 +61,7 @@ module GameObjects {
 
 		update() {
 			this.followPath();
-			Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer);
+			//Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer);
 
 			var playerCoords = new Phaser.Point(Global.player.sprite.x, Global.player.sprite.y);
 			if(this.canSeePlayer()) {
