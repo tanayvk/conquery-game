@@ -7,4 +7,6 @@ module Global {
 	export var player = null;
 	export var enemies = null;
 	export var debug = false;
+
+	export var volume = 0.2;
 }

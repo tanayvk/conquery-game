@@ -52,8 +52,12 @@ module GameRooms {
 			this.enemies.forEach(function (enemy) {
 				if(!enemy.clean) {
 					enemy.update();
-					if(enemy.health <= 0)
-						enemy.clean = true;;
+					if(enemy.health <= 0) {
+						enemy.clean = true;
+
+						var sound = Game.game.add.sound("die", Global.volume);
+						sound.play();
+					}
 				}
 			});
 			this.cleanEnemies();

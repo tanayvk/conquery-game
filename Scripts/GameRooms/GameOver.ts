@@ -52,19 +52,16 @@ module GameRooms {
 			}
 		}
 
-		render () {
-			// if(this.hasWon)
-			// 	Game.game.debug.text("You won! You've captured all the planets.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#11ff22");
-			// else
-			// 	Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
-		}
-
 		tryAgain() {
 			Game.game.state.start("main-room");
+			var sound = Game.game.add.audio("select", Global.volume);
+			sound.play();
 		}
 
 		mainMenu() {
 			Game.game.state.start("main-menu");
+			var sound = Game.game.add.audio("select", Global.volume);
+			sound.play();
 		}
 
 	}

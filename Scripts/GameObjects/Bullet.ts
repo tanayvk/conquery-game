@@ -23,7 +23,12 @@ module GameObjects {
 			this.sprite.angle = (180 / Math.PI) * Math.atan2(this.sprite.body.velocity.y, this.sprite.body.velocity.x);
 
 			if(Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer))
+			{
 				this.clean = true;
+
+				var sound = Game.game.add.audio("wall-hit", Global.volume);
+				sound.play();
+			}
 		}
 
 		towards(x, y) {

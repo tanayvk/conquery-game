@@ -73,6 +73,9 @@ module GameObjects {
 						if(Game.game.physics.arcade.overlap(enemy.sprite, bul.sprite)) {
 							bul.clean = true;
 							enemy.health = enemy.health - 5;
+
+							var sound = Game.game.add.audio("hit", Global.volume);
+							sound.play();
 						}
 					});
 				// }
@@ -89,11 +92,14 @@ module GameObjects {
 		activatePlanet() {
 			this.isActivated = true;
 			this.loadTimer.destroy();
-			delete this.loadTimer;
 
+			delete this.loadTimer;
 			delete this.progressBar;
 
 			this.sprite.loadTexture('planet_activated');
+
+			var sound = Game.game.add.audio("planet-activated", Global.volume);
+			sound.play();
 		}
 
 		canSeeEnemy(enemy) {
@@ -108,6 +114,9 @@ module GameObjects {
 			var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
 			bullet.towards(enemy.sprite.x, enemy.sprite.y);
 			this.bullets.push(bullet);
+
+			var sound = Game.game.add.audio("shoot", Global.volume);
+			sound.play();
 		}
 
 		getEnemiesArray() {

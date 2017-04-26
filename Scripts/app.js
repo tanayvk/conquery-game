@@ -74,8 +74,11 @@ var GameObjects;
         }
         Bullet.prototype.update = function () {
             this.sprite.angle = (180 / Math.PI) * Math.atan2(this.sprite.body.velocity.y, this.sprite.body.velocity.x);
-            if (Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer))
+            if (Game.game.physics.arcade.collide(this.sprite, Global.blockedLayer)) {
                 this.clean = true;
+                var sound = Game.game.add.audio("wall-hit", Global.volume);
+                sound.play();
+            }
         };
         Bullet.prototype.towards = function (x, y) {
             var deltaX = x - this.sprite.x;
@@ -124,6 +127,7 @@ var Global;
     Global.player = null;
     Global.enemies = null;
     Global.debug = false;
+    Global.volume = 0.2;
 })(Global || (Global = {}));
 /// <reference path="../Global.ts" />
 var GameRooms;
@@ -147,6 +151,12 @@ var GameRooms;
             this.game.load.image("planet", "Assets/Images/planet.png");
             this.game.load.image("planet_activated", "Assets/Images/planet_activated.png");
             this.game.load.image("game-over", "Assets/Images/game-over.png");
+            this.game.load.audio("select", "Assets/Sounds/select.wav");
+            this.game.load.audio("shoot", "Assets/Sounds/shoot.wav");
+            this.game.load.audio("planet-activated", "Assets/Sounds/planet-activated.wav");
+            this.game.load.audio("hit", "Assets/Sounds/hit.wav");
+            this.game.load.audio("wall-hit", "Assets/Sounds/wall-hit.wav");
+            this.game.load.audio("die", "Assets/Sounds/die.wav");
             Game.ui.load("Assets/UI/kenney.json");
         };
         Loader.prototype.create = function () {
@@ -206,6 +216,8 @@ var GameObjects;
                     if (Game.game.physics.arcade.overlap(enemy.sprite, bul.sprite)) {
                         bul.clean = true;
                         enemy.health = enemy.health - 5;
+                        var sound = Game.game.add.audio("hit", Global.volume);
+                        sound.play();
                     }
                 });
                 // }
@@ -223,6 +235,8 @@ var GameObjects;
             delete this.loadTimer;
             delete this.progressBar;
             this.sprite.loadTexture('planet_activated');
+            var sound = Game.game.add.audio("planet-activated", Global.volume);
+            sound.play();
         };
         Planet.prototype.canSeeEnemy = function (enemy) {
             var myCoords = new Phaser.Point(this.sprite.x, this.sprite.y);
@@ -234,6 +248,8 @@ var GameObjects;
             var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
             bullet.towards(enemy.sprite.x, enemy.sprite.y);
             this.bullets.push(bullet);
+            var sound = Game.game.add.audio("shoot", Global.volume);
+            sound.play();
         };
         Planet.prototype.getEnemiesArray = function () {
             if (this.enemiesArray == undefined) {
@@ -275,7 +291,7 @@ var GameRooms;
         function MainMenu() {
             var _this = _super.call(this) || this;
             _this.PANEL_WIDTH = 200;
-            _this.PANEL_HEIGHT = 200;
+            _this.PANEL_HEIGHT = 80;
             return _this;
         }
         MainMenu.prototype.preload = function () {
@@ -290,9 +306,11 @@ var GameRooms;
             newGameButton = new SlickUI.Element.Button(10, 10, 170, 50);
             this.panel.add(newGameButton);
             newGameButton.events.onInputUp.add(this.newGame);
-            newGameButton.add(new SlickUI.Element.Text(0, 0, "New Game")).center();
+            newGameButton.add(new SlickUI.Element.Text(0, 0, "Start")).center();
         };
         MainMenu.prototype.newGame = function () {
+            var sound = Game.game.add.audio("select", Global.volume);
+            sound.play();
             Game.game.state.start("main-room");
         };
         return MainMenu;
@@ -377,9 +395,11 @@ var GameRooms;
             this.enemies.forEach(function (enemy) {
                 if (!enemy.clean) {
                     enemy.update();
-                    if (enemy.health <= 0)
+                    if (enemy.health <= 0) {
                         enemy.clean = true;
-                    ;
+                        var sound = Game.game.add.sound("die", Global.volume);
+                        sound.play();
+                    }
                 }
             });
             this.cleanEnemies();
@@ -512,17 +532,15 @@ var GameRooms;
                 text.setTextBounds(0, 100, Game.game.width, Game.game.height);
             }
         };
-        GameOver.prototype.render = function () {
-            // if(this.hasWon)
-            // 	Game.game.debug.text("You won! You've captured all the planets.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#11ff22");
-            // else
-            // 	Game.game.debug.text("You lose! You were killed by an enemy.", Game.game.width / 2 - 200, Game.game.height / 2 + 200, "#ff1122");
-        };
         GameOver.prototype.tryAgain = function () {
             Game.game.state.start("main-room");
+            var sound = Game.game.add.audio("select", Global.volume);
+            sound.play();
         };
         GameOver.prototype.mainMenu = function () {
             Game.game.state.start("main-menu");
+            var sound = Game.game.add.audio("select", Global.volume);
+            sound.play();
         };
         return GameOver;
     }(Phaser.State));
@@ -693,6 +711,8 @@ var GameObjects;
             var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
             bullet.towards(Global.player.sprite.x, Global.player.sprite.y);
             this.bullets.push(bullet);
+            var sound = Game.game.add.audio("shoot", Global.volume);
+            sound.play();
         };
         Enemy.prototype.Stop = function () {
             this.sprite.body.velocity.setTo(0, 0);
@@ -748,6 +768,8 @@ var GameObjects;
                     Game.game.physics.arcade.overlap(bullet.sprite, Global.player.sprite, null, function () {
                         this.clean = true;
                         Global.player.health = Global.player.health - 5;
+                        var sound = Game.game.add.audio("hit", Global.volume);
+                        sound.play();
                     }, bullet);
                 }
             });

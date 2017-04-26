@@ -144,6 +144,9 @@ module GameObjects {
 			var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
 			bullet.towards(Global.player.sprite.x, Global.player.sprite.y);
 			this.bullets.push(bullet);
+
+			var sound = Game.game.add.audio("shoot", Global.volume);
+			sound.play();
 		}
 
 		Stop() {
@@ -207,6 +210,9 @@ module GameObjects {
 					Game.game.physics.arcade.overlap(bullet.sprite, Global.player.sprite, null, function() {
 						this.clean = true;
 						Global.player.health = Global.player.health - 5;
+
+						var sound = Game.game.add.audio("hit", Global.volume);
+						sound.play();
 					}, bullet);
 				}
 			});
