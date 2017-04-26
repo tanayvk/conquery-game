@@ -7,10 +7,17 @@ module GameObjects {
 		angle: number;
 		clean: boolean;
 
-		constructor(x, y, speed) {
+		color: number;
+		static BLUE_COLOR = 0;
+		static GREEN_COLOR = 1;
+
+		constructor(x, y, speed, color) {
 			this.speed = speed;
 
-			this.sprite = Game.game.add.sprite(x, y, "bullet");
+			if(color == GameObjects.Bullet.BLUE_COLOR)
+				this.sprite = Game.game.add.sprite(x, y, "bullet-blue");
+			else if(color == GameObjects.Bullet.GREEN_COLOR)
+				this.sprite = Game.game.add.sprite(x, y, "bullet-green");
 			Game.game.physics.arcade.enable(this.sprite);
 
 			this.sprite.anchor.setTo(0.5, 0.5);

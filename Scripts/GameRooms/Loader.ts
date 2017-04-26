@@ -21,7 +21,8 @@ module GameRooms {
 			this.game.load.image("player", "Assets/Images/player.png");
 			this.game.load.image("enemy", "Assets/Images/enemy.png");
 			this.game.load.image("wall", "Assets/Images/wall.png");
-			this.game.load.image("bullet", "Assets/Images/bullet.png");
+			this.game.load.image("bullet-blue", "Assets/Images/bullet-blue.png");
+			this.game.load.image("bullet-green", "Assets/Images/bullet-green.png");
 			this.game.load.image("planet", "Assets/Images/planet.png");
 			this.game.load.image("planet_activated", "Assets/Images/planet_activated.png");
 			this.game.load.image("game-over", "Assets/Images/game-over.png");

@@ -111,7 +111,7 @@ module GameObjects {
 		}
 
 		Shoot(enemy) {
-			var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
+			var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed, GameObjects.Bullet.BLUE_COLOR);
 			bullet.towards(enemy.sprite.x, enemy.sprite.y);
 			this.bullets.push(bullet);
 

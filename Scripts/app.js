@@ -65,9 +65,12 @@ var GameObjects;
 var GameObjects;
 (function (GameObjects) {
     var Bullet = (function () {
-        function Bullet(x, y, speed) {
+        function Bullet(x, y, speed, color) {
             this.speed = speed;
-            this.sprite = Game.game.add.sprite(x, y, "bullet");
+            if (color == GameObjects.Bullet.BLUE_COLOR)
+                this.sprite = Game.game.add.sprite(x, y, "bullet-blue");
+            else if (color == GameObjects.Bullet.GREEN_COLOR)
+                this.sprite = Game.game.add.sprite(x, y, "bullet-green");
             Game.game.physics.arcade.enable(this.sprite);
             this.sprite.anchor.setTo(0.5, 0.5);
             Game.game.time.events.add(Phaser.Timer.SECOND * 2, this.kill, this);
@@ -94,6 +97,8 @@ var GameObjects;
         };
         return Bullet;
     }());
+    Bullet.BLUE_COLOR = 0;
+    Bullet.GREEN_COLOR = 1;
     GameObjects.Bullet = Bullet;
 })(GameObjects || (GameObjects = {}));
 var GameRooms;
@@ -147,7 +152,8 @@ var GameRooms;
             this.game.load.image("player", "Assets/Images/player.png");
             this.game.load.image("enemy", "Assets/Images/enemy.png");
             this.game.load.image("wall", "Assets/Images/wall.png");
-            this.game.load.image("bullet", "Assets/Images/bullet.png");
+            this.game.load.image("bullet-blue", "Assets/Images/bullet-blue.png");
+            this.game.load.image("bullet-green", "Assets/Images/bullet-green.png");
             this.game.load.image("planet", "Assets/Images/planet.png");
             this.game.load.image("planet_activated", "Assets/Images/planet_activated.png");
             this.game.load.image("game-over", "Assets/Images/game-over.png");
@@ -245,7 +251,7 @@ var GameObjects;
             return photon.isFree();
         };
         Planet.prototype.Shoot = function (enemy) {
-            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
+            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed, GameObjects.Bullet.BLUE_COLOR);
             bullet.towards(enemy.sprite.x, enemy.sprite.y);
             this.bullets.push(bullet);
             var sound = Game.game.add.audio("shoot", Global.volume);
@@ -708,7 +714,7 @@ var GameObjects;
             }
         };
         Enemy.prototype.shootBullet = function () {
-            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed);
+            var bullet = new GameObjects.Bullet(this.sprite.x, this.sprite.y, this.bulletSpeed, GameObjects.Bullet.GREEN_COLOR);
             bullet.towards(Global.player.sprite.x, Global.player.sprite.y);
             this.bullets.push(bullet);
             var sound = Game.game.add.audio("shoot", Global.volume);
