@@ -15,7 +15,7 @@ module GameObjects {
 
 			this.sprite.anchor.setTo(0.5, 0.5);
 
-			Game.game.time.events.add(Phaser.Timer.SECOND * 0.5, this.kill, this);
+			Game.game.time.events.add(Phaser.Timer.SECOND * 2, this.kill, this);
 		}
 
 

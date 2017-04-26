@@ -33,7 +33,7 @@ module GameRooms {
 			Global.blockedLayer = this.blockedLayer;
 
 			var tile_dimensions = new Phaser.Point(Game.game.map.tileWidth, Game.game.map.tileHeight);
-			this.pathfinder = Game.game.plugins.add(Pathfinding, Game.game.map.layers[1].data, [-1], tile_dimensions);
+			this.pathfinder = Game.game.plugins.add(Pathfinding, Game.game.map.layers[0].data, [-1], tile_dimensions);
 
 			this.planets = new Array<GameObjects.Planet>();
 			this.createPlanets();
@@ -104,7 +104,7 @@ module GameRooms {
 			var enemy = new GameObjects.Enemy(48*32, 2*32, this.pathfinder);
 			enemy.addPatrolPoint(new Phaser.Point(48*32, 2*32));
 			enemy.addPatrolPoint(new Phaser.Point(31*32, 15*32));
-			// this.enemies.push(enemy);
+			this.enemies.push(enemy);
 		}
 
 		createPlayer() {

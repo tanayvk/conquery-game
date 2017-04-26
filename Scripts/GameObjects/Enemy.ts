@@ -53,7 +53,7 @@ module GameObjects {
 			this.pathfinder = pathfinder;
 			this.patrolPoints = new Array<Phaser.Point>();
 			this.currentPatrol = 0;
-			this.resetPath();
+			this.finishPath();
 
 			this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
 			this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 4, this.giveBullet, this);
@@ -103,13 +103,17 @@ module GameObjects {
 		resetPath() {
 			this.path = [];
 			this.path_step = -1;
+		}
+		finishPath() {
+			this.path = [];
+			this.path_step = -1;
 
 			this.Stop();
 			if(this.patrolEvent != undefined) {
 				Game.game.time.events.remove(this.patrolEvent);
 				delete this.patrolEvent;
 			}
-			this.patrolEvent = Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
+			this.patrolEvent = Game.game.time.events.add(3 * Phaser.Timer.SECOND, this.Patrol, this);
 		}
 
 		followPath() {
@@ -130,7 +134,7 @@ module GameObjects {
 					if (this.path_step < this.path.length - 1) {
 						this.path_step += 1;
 					} else {
-						this.resetPath();
+						this.finishPath();
 					}
 				}
 			}
@@ -153,17 +157,8 @@ module GameObjects {
 		}
 
 		followPlayer() {
-
-			if(this.canSeePlayer() && !Global.player.isMoving)
-			{
-				this.resetPath();
-				return;
-			}
-
 			if((this.latestPlayerCoords != this.oldPlayerCoords)) {
 				this.oldPlayerCoords = this.latestPlayerCoords;
-
-				this.resetPath();
 				this.MoveTo(this.latestPlayerCoords);
 			}
 		}
@@ -174,8 +169,8 @@ module GameObjects {
 		}
 
 		Patrol() {
-			if(this.path = [] && !this.canSeePlayer() && this.patrolPoints.length > 0) {
-				if(this.patrolPoints[++this.currentPatrol] != undefined) {
+			if(!this.canSeePlayer() && this.patrolPoints.length > 0) {
+				if(this.patrolPoints[++this.currentPatrol]) {
 					this.MoveTo(this.patrolPoints[this.currentPatrol]);
 				} else {
 					this.currentPatrol = 0;
@@ -235,8 +230,6 @@ module GameObjects {
 			Game.game.time.events.remove(this.patrolEvent);
 			Game.game.time.events.remove(this.giveBulletLoop);
 			Game.game.time.events.remove(this.followPlayerLoop);
-
-			delete this.progressBar;
 		}
 	}
 }

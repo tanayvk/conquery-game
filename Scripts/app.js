@@ -70,7 +70,7 @@ var GameObjects;
             this.sprite = Game.game.add.sprite(x, y, "bullet");
             Game.game.physics.arcade.enable(this.sprite);
             this.sprite.anchor.setTo(0.5, 0.5);
-            Game.game.time.events.add(Phaser.Timer.SECOND * 0.5, this.kill, this);
+            Game.game.time.events.add(Phaser.Timer.SECOND * 2, this.kill, this);
         }
         Bullet.prototype.update = function () {
             this.sprite.angle = (180 / Math.PI) * Math.atan2(this.sprite.body.velocity.y, this.sprite.body.velocity.x);
@@ -364,7 +364,7 @@ var GameRooms;
             Game.game.map.setCollisionBetween(1, 75 * 75, true, this.blockedLayer);
             Global.blockedLayer = this.blockedLayer;
             var tile_dimensions = new Phaser.Point(Game.game.map.tileWidth, Game.game.map.tileHeight);
-            this.pathfinder = Game.game.plugins.add(Pathfinding, Game.game.map.layers[1].data, [-1], tile_dimensions);
+            this.pathfinder = Game.game.plugins.add(Pathfinding, Game.game.map.layers[0].data, [-1], tile_dimensions);
             this.planets = new Array();
             this.createPlanets();
             Global.enemies = this.enemies = new Array();
@@ -426,7 +426,7 @@ var GameRooms;
             var enemy = new GameObjects.Enemy(48 * 32, 2 * 32, this.pathfinder);
             enemy.addPatrolPoint(new Phaser.Point(48 * 32, 2 * 32));
             enemy.addPatrolPoint(new Phaser.Point(31 * 32, 15 * 32));
-            // this.enemies.push(enemy);
+            this.enemies.push(enemy);
         };
         MainRoom.prototype.createPlayer = function () {
             this.player = new GameObjects.Player(36 * 32, 71 * 32);
@@ -601,7 +601,7 @@ var GameObjects;
             this.pathfinder = pathfinder;
             this.patrolPoints = new Array();
             this.currentPatrol = 0;
-            this.resetPath();
+            this.finishPath();
             this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
             this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 4, this.giveBullet, this);
         }
@@ -645,12 +645,16 @@ var GameObjects;
         Enemy.prototype.resetPath = function () {
             this.path = [];
             this.path_step = -1;
+        };
+        Enemy.prototype.finishPath = function () {
+            this.path = [];
+            this.path_step = -1;
             this.Stop();
             if (this.patrolEvent != undefined) {
                 Game.game.time.events.remove(this.patrolEvent);
                 delete this.patrolEvent;
             }
-            this.patrolEvent = Game.game.time.events.add(2 * Phaser.Timer.SECOND, this.Patrol, this);
+            this.patrolEvent = Game.game.time.events.add(3 * Phaser.Timer.SECOND, this.Patrol, this);
         };
         Enemy.prototype.followPath = function () {
             var next_position, velocity;
@@ -669,7 +673,7 @@ var GameObjects;
                         this.path_step += 1;
                     }
                     else {
-                        this.resetPath();
+                        this.finishPath();
                     }
                 }
             }
@@ -688,13 +692,8 @@ var GameObjects;
             return photon.isFree();
         };
         Enemy.prototype.followPlayer = function () {
-            if (this.canSeePlayer() && !Global.player.isMoving) {
-                this.resetPath();
-                return;
-            }
             if ((this.latestPlayerCoords != this.oldPlayerCoords)) {
                 this.oldPlayerCoords = this.latestPlayerCoords;
-                this.resetPath();
                 this.MoveTo(this.latestPlayerCoords);
             }
         };
@@ -703,8 +702,8 @@ var GameObjects;
                 this.numOfBullets++;
         };
         Enemy.prototype.Patrol = function () {
-            if (this.path = [] && !this.canSeePlayer() && this.patrolPoints.length > 0) {
-                if (this.patrolPoints[++this.currentPatrol] != undefined) {
+            if (!this.canSeePlayer() && this.patrolPoints.length > 0) {
+                if (this.patrolPoints[++this.currentPatrol]) {
                     this.MoveTo(this.patrolPoints[this.currentPatrol]);
                 }
                 else {
@@ -757,7 +756,6 @@ var GameObjects;
             Game.game.time.events.remove(this.patrolEvent);
             Game.game.time.events.remove(this.giveBulletLoop);
             Game.game.time.events.remove(this.followPlayerLoop);
-            delete this.progressBar;
         };
         return Enemy;
     }());
