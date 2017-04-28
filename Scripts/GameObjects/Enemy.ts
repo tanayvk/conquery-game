@@ -55,7 +55,7 @@ module GameObjects {
 			this.currentPatrol = 0;
 			this.finishPath();
 
-			this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
+			this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 3, this.followPlayer, this);
 			this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 4, this.giveBullet, this);
 		}
 

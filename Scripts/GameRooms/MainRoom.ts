@@ -126,8 +126,6 @@ module GameRooms {
 			});
 
 			this.player.render();
-
-			Game.game.debug.text(Game.game.time.fps, 50, 50);
 		}
 
 		cleanEnemies() {

@@ -11,7 +11,7 @@ module GameObjects {
 		constructor(x, y) {
 			this.sprite = Game.game.add.sprite(x, y, "player");
 			this.sprite.anchor.setTo(0.5, 0.5);
-			this.SPEED = 500;
+			this.SPEED = 400;
 			Game.game.physics.arcade.enable(this.sprite);
 
 			this.health = 100;

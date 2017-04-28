@@ -14,7 +14,7 @@ var GameObjects;
         function Player(x, y) {
             this.sprite = Game.game.add.sprite(x, y, "player");
             this.sprite.anchor.setTo(0.5, 0.5);
-            this.SPEED = 500;
+            this.SPEED = 400;
             Game.game.physics.arcade.enable(this.sprite);
             this.health = 100;
             this.progressBar = new GameObjects.ProgressBar(Game.game.width - 200, 50, 150, 30, this.health);
@@ -467,7 +467,6 @@ var GameRooms;
                 enemy.render();
             });
             this.player.render();
-            Game.game.debug.text(Game.game.time.fps, 50, 50);
         };
         MainRoom.prototype.cleanEnemies = function () {
             var enemies = this.enemies;
@@ -637,7 +636,7 @@ var GameObjects;
             this.patrolPoints = new Array();
             this.currentPatrol = 0;
             this.finishPath();
-            this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND, this.followPlayer, this);
+            this.followPlayerLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 3, this.followPlayer, this);
             this.giveBulletLoop = Game.game.time.events.loop(Phaser.Timer.SECOND / 4, this.giveBullet, this);
         }
         Enemy.prototype.update = function () {
