@@ -9,4 +9,5 @@ module Global {
 	export var debug = false;
 
 	export var volume = 0.2;
+	export var musicVolume = 0.5;
 }

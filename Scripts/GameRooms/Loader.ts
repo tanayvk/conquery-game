@@ -33,11 +33,15 @@ module GameRooms {
 			this.game.load.audio("hit", "Assets/Sounds/hit.wav");
 			this.game.load.audio("wall-hit", "Assets/Sounds/wall-hit.wav");
 			this.game.load.audio("die", "Assets/Sounds/die.wav");
+			this.game.load.audio("loop", "Assets/Sounds/automation.mp3");
 
 			Game.ui.load("Assets/UI/kenney.json");
 		}
 
 		create() {
+			var loop = Game.game.add.audio("loop", Global.musicVolume);
+			loop.loopFull();
+
 			this.game.state.start("main-menu");
 		}
 

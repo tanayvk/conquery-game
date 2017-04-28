@@ -133,6 +133,7 @@ var Global;
     Global.enemies = null;
     Global.debug = false;
     Global.volume = 0.2;
+    Global.musicVolume = 0.5;
 })(Global || (Global = {}));
 /// <reference path="../Global.ts" />
 var GameRooms;
@@ -163,9 +164,12 @@ var GameRooms;
             this.game.load.audio("hit", "Assets/Sounds/hit.wav");
             this.game.load.audio("wall-hit", "Assets/Sounds/wall-hit.wav");
             this.game.load.audio("die", "Assets/Sounds/die.wav");
+            this.game.load.audio("loop", "Assets/Sounds/automation.mp3");
             Game.ui.load("Assets/UI/kenney.json");
         };
         Loader.prototype.create = function () {
+            var loop = Game.game.add.audio("loop", Global.musicVolume);
+            loop.loopFull();
             this.game.state.start("main-menu");
         };
         return Loader;
